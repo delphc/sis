@@ -1,0 +1,86 @@
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+
+
+
+<form id="id-clientIdForm" method="post" action="{% url 'client_profile' pk=object.id %}"> 
+	{% csrf_token %}
+<p class="row"><span>{% trans 'Client Identification' %}</span>
+	<a class="btn btn-primary pull-right" href="#" id="show-form-lines">
+		<i class="fa fa-edit"></i>
+		Edit</a>
+</p>
+<div class="row form-line pull-right">
+	<button type="cancel" name="cancel-id" class="btn btn-secondary" id="cancel-id-form">Cancel</button>
+	<input type="submit" name="submit-id" value="Save changes" class="btn btn-primary" id="submit-id-form">
+</div>
+<div class="row">
+<table class="table table-user-information">
+<tbody>
+  <tr>
+    <td>{% trans 'Name' %}</td>
+    <td>{{ object.first_name }} {{ object.middle_name }} {{ object.last_name }}</td>
+  </tr>
+  <tr class="form-line">
+    <td></td>
+    <td>
+    	{{ form.first_name|as_crispy_field:"bootstrap" }}
+    	{{ form.middle_name|as_crispy_field:"bootstrap" }}
+    	{{ form.last_name|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Gender' %}</td>
+    <td>{{ object.get_gender_display }}</td>
+  </tr>
+  <tr class="form-line">
+    <td></td>
+    <td>
+    	{{ form.gender|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Maiden Name' %}</td>
+    <td>{{ object.maiden_name }}</td>
+  </tr>
+  <tr class="form-line">
+    <td></td>
+    <td>
+    	{{ form.maiden_name|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Birth date' %}</td>
+    <td>{{ object.birth_date }}</td>
+  </tr>
+  <tr class="form-line">
+    <td></td>
+    <td>
+    	{{ form.birth_date|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Status' %}</td>
+    <td>{{ object.get_status_display }}</td>
+  </tr>
+  <tr class="form-line">
+    <td></td>
+    <td>
+    	{{ form.status|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+
+  <tr>
+    <td>{% trans 'Added on' %}</td>
+    <td>{{ object.created }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Last modified on' %}</td>
+    <td>{{ object.modified }}</td>
+  </tr>
+</tbody>
+</table>
+</div>
+</form>

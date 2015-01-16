@@ -1,0 +1,295 @@
+{% extends 'clients/base_profile.html' %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+{% load verbose_names %}
+{% get_current_language as LANGUAGE_CODE %}
+
+
+{% block tab-content %}
+	<div id="tab-order" class="tab-pane active">
+	    				
+<form  method="post" action="{% url 'client_profile_order' pk=object.id %}"> 
+	{% csrf_token %}
+	<p class="row"><span>{% trans 'Command' %}</span>
+	<a class="btn btn-primary pull-right" href="#" id="show-order-form-lines">
+		<i class="fa fa-edit"></i>
+		Edit</a>
+	</p>
+<div class="row form-line pull-right">
+	<button type="cancel" name="cancel" class="btn btn-secondary" id="cancel-form">Cancel</button>
+	<input type="submit" name="submit" value="Save changes" class="btn btn-primary" id="submit-form">
+</div>
+<div class="row">
+<table class="table table-user-information">
+<tbody>
+  <tr>
+    <td>{% trans 'Command Type' %}</td>
+    <td>{% if order != None %}{{ order.get_type_display }}{% endif %}
+	</td>
+  </tr>
+  <tr id="tr_type" class="form-line">
+    <td></td>
+    <td>
+    	{{ form.type|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr id="tr-days" class="ongoing-only">
+    <td>{% trans 'Days of delivery' %}</td>
+    <td><h4>{% if order != None and order.monday %}<span class="label label-success">{% trans 'Monday' %}</span>
+    	{% else %}<span class="label label-default">{% trans 'Monday' %}</span>
+    	{% endif %}
+    	{% if order != None and order.tuesday %}<span class="label label-success">{% trans 'Tuesday' %}</span>
+    	{% else %}<span class="label label-default">{% trans 'Tuesday' %}</span>
+    	{% endif %}
+    	{% if order != None and order.wednesday %}<span class="label label-default">{% trans 'Wednesday' %}</span>
+    	{% else %}<span class="label label-default">{% trans 'Wednesday' %}</span>
+    	{% endif %}
+    	{% if order != None and order.friday %}<span class="label label-success">{% trans 'Friday' %}</span>
+    	{% else %}<span class="label label-default">{% trans 'Friday' %}</span>
+    	{% endif %}
+    	{% if order != None and order.saturday %}<span class="label label-success">{% trans 'Saturday' %}</span>
+    	{% else %}<span class="label label-default">{% trans 'Saturday' %}</span>
+    	{% endif %}
+    	</h4>
+	</td>
+  </tr>
+  <tr id="days-edit" class="ongoing-only form-line">
+    <td></td>
+    <td>
+    	<div id="btn-days">
+			<button type="button"
+				id="btn-order-monday" 
+				class="btn btn-order-day {% if order != None and order.monday %}btn-success{% else %}btn-default{% endif %}" 
+				data-toggle="button"
+				value = "id_monday">
+				{% trans 'Monday' %}
+				</button>
+			<button type="button" 
+				id="btn-order-tuesday" 
+				class="btn btn-order-day {% if order != None and order.tuesday %}btn-success{% else %}btn-default{% endif %}" 
+				data-toggle="button"
+				value = "id_tuesday">
+				{% trans 'Tuesday' %}
+			</button>
+			<button type="button" 
+				id="btn-order-wednesday" 
+				class="btn btn-order-day {% if order != None and order.wednesday %}btn-success{% else %}btn-default{% endif %}" 
+				data-toggle="button"
+				value = "id_wednesday">
+				{% trans 'Wednesday' %}
+			</button>
+			<button type="button"
+				id="btn-order-friday"  
+				class="btn btn-order-day {% if order != None and order.friday %}btn-success{% else %}btn-default{% endif %}" 
+				data-toggle="button"
+				value = "id_friday">
+				{% trans 'Friday' %}
+			</button>
+			<button type="button" 
+				id="btn-order-saturday" 
+				class="btn btn-order-day {% if order != None and order.saturday %}btn-success{% else %}btn-default{% endif %}" 
+				data-toggle="button"
+				value = "id_saturday">
+				{% trans 'Saturday' %}
+			</button>
+			
+		</div>
+    	{{ form.monday|as_crispy_field:"bootstrap" }}
+    	{{ form.tuesday|as_crispy_field:"bootstrap" }}
+    	{{ form.wednesday|as_crispy_field:"bootstrap" }}
+    	{{ form.friday|as_crispy_field:"bootstrap" }}
+    	{{ form.saturday|as_crispy_field:"bootstrap" }}
+   </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Start Date' %}</td>
+    <td>{% if order != None %}{{ order.start_date }}{% endif %}
+	</td>
+  </tr>
+  <tr class="form-line">
+    <td></td>
+    <td>
+    	{{ form.start_date|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Status' %}</td>
+    <td>{% if order != None %}
+    		<p>{{ order.get_current_status }}</p>
+    		{% if order.has_stop %}
+				{% with order_stop=order.get_stop %}
+    		    		
+    				<p>{% trans order_stop.display_dates %}
+    				({{ order_stop.display_reason }})
+    				</p>
+    			{% endwith %}	
+    		{% endif %}
+    	{% endif %}
+	</td>
+  </tr>
+  <tr class="form-line">
+    <td></td>
+    <td>
+    	{{ title_stop_form }}
+    	<button type="button" 
+				id="btn-order-stop-schedule" 
+				class="btn btn-default form-line" 
+				data-toggle="button">
+				{% trans 'Schedule stop' %}
+		</button>
+		<a id="a_undo_schedule">{% trans 'Undo' %}</a>
+		{{ form.create_or_update_stop|as_crispy_field:"bootstrap" }}
+		{{ form.remove_stop|as_crispy_field:"bootstrap" }}
+		<button type="button" 
+				id="btn-order-stop-cancel" 
+				class="btn btn-default" 
+				data-toggle="button">
+				{% trans 'Cancel stop' %}
+			</button>
+		<div id="div-order-stop">
+			
+			{% crispy stop_form stop_form_helper %}
+		</div>
+    </td>
+  </tr>
+  
+  <tr>
+    <td>{% trans 'Delivery' %}</td>
+    <td>{% if order != None %}
+    		{% with order_default=order.get_delivery_default %}
+    		<p>{{ order_default.nb_meal }} {% trans 'Meal' %}{{ order_default.nb_meal|pluralize }}</p>
+    		{% for side in order_default.defaultmealside_set.all %}
+    			<p>{{ side.quantity }} {{ side.side }}</p>
+    		{% endfor %}
+    		{% endwith %}
+    	{% endif %}
+	</td>
+  </tr>
+  <tr class="form-line">
+    <td></td>
+    <td><div id="deliv-form">	
+			<div class="inline">
+				{% crispy delivery_form  %}
+			</div>
+			<fieldset>
+                {{ mealside_form.management_form }}
+                {{ mealside_form.non_form_errors }}
+                {% for sideform in mealside_form %}
+                    {{ sideform.id }}
+                    <div class="inline {{ mealside_form.prefix }}">
+                        {{ sideform.side.label_tag }}
+                        {{ sideform.quantity.errors }}
+                        {{ sideform.quantity }}
+                        {{ sideform.side.errors }}
+                        {{ sideform.side }}
+                        
+                    </div>
+                {% endfor %}
+            </fieldset>
+		</div>
+    </td>
+  </tr>
+</tbody>
+</table>
+</div>
+</form>
+</div>
+{% endblock tab-content %}
+
+{% block javascript_extra_tab %}
+    
+       
+    $( "#show-order-form-lines" ).click(function() {
+    	$( ".form-line" ).show("blind");
+     	var val_type = $('#tab-order #id_type').val();
+     	if (val_type === 'E')
+     		$( "#days-edit" ).hide();
+     		
+     	$("#a_undo_schedule").hide();
+    	var show_stop_sched_btn={% if show_stop_sched_btn %}true{% else %}false{% endif %};
+		if (show_stop_sched_btn) 
+			$( "#btn-order-stop-schedule" ).show();
+		else
+			$( "#btn-order-stop-schedule" ).hide();
+	
+		var show_stop_cancel_btn={% if show_stop_cancel_btn %}true{% else %}false{% endif %};
+		if (show_stop_cancel_btn)
+			$( "#btn-order-stop-cancel" ).show();
+		else
+			$( "#btn-order-stop-cancel" ).hide();
+		
+	   	var show_stop_form={% if show_stop_form %}true{% else %}false{% endif %};
+		if (show_stop_form) {
+			$( "#div-order-stop" ).show();
+			$('#id_create_or_update_stop').val('True');
+		}
+		else
+			$( "#div-order-stop" ).hide();
+    });
+  	  
+  	var val_type = $('#tab-order #id_type').val();
+   	if (val_type === 'E')
+   		$('#tr-days').hide()
+	else
+		$('#tr-days').show()
+		
+ 	
+    // when user clicks on a delivery day button
+    // it switches the value True/False of the associated hidden input field
+    $('#tab-order #id_type').change(function(){
+    	var data=$(this).val();
+     	if (data === 'E') { // for 'next of kin' category
+     		$('.ongoing-only').hide();      		
+      	} else {
+      		$('.ongoing-only').show();
+      	}     	
+    });
+//   var val_type = $('#tab-order #id_type').val();
+//   $('#tab-order #id_type').val(val_type).change();
+    
+    $('#tab-order .btn-order-day').on('click', function () {
+    	$(this).toggleClass('btn-success').toggleClass('btn-default');
+    	
+    	var hidden_field_id = '#'+$(this).val();
+    	
+    	if ($(hidden_field_id).val() === 'False')
+    		$(hidden_field_id).val('True');
+    	else
+    		$(hidden_field_id).val('False');
+    		
+  	})
+   
+    // variable show_form_line is defined in base_profile.html
+		
+	$( "#btn-order-stop-schedule" ).click(function() {
+		$(this).toggleClass('btn-success').toggleClass('btn-default');
+    	$("#a_undo_schedule").show("blind");
+		$("#div-order-stop" ).show("blind");
+		$('#id_create_or_update_stop').val('True');
+    });
+    $("#a_undo_schedule").click(function() {
+		$(this).hide();
+		$("#btn-order-stop-schedule").toggleClass('btn-success').toggleClass('btn-default');
+    	
+		$( "#div-order-stop" ).hide();
+		$('#id_create_or_update_stop').val('False');
+    	
+	});
+ 	$( "#btn-order-stop-cancel" ).click(function() {
+ 		$(this).toggleClass('btn-success').toggleClass('btn-default');
+    	$( "#div-order-stop" ).hide();
+    	$('#id_remove_stop').val('True');	
+    });
+    
+    $(function() {
+            $(".{{ mealside_form.prefix }}").formset({
+                prefix: "{{ mealside_form.prefix }}",
+            })
+        })
+    
+//    $(['name^="stop"']).change(function(){
+//    	alert('stop form change');
+//    	$('#id_create_or_update_stop').val('True');
+//    });
+{% endblock javascript_extra_tab %}

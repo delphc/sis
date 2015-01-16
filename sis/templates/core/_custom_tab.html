@@ -1,0 +1,8 @@
+<div id="tab_links" class="col-xs-12 col-sm-2 pull-right">
+	<ul{% if tabs.css_id %} id="{{ tabs.css_id }}"{% endif %} class="nav nav-tabs {% if tabs.css_class %} {{ tabs.css_class }}{% endif %}">
+    {{ links|safe }}
+</ul>
+</div>
+<div class="tab-content panel-body col-xs-12 col-sm-10">
+    {{ content|safe }}
+</div>

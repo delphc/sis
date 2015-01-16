@@ -1,0 +1,43 @@
+{% load crispy_forms_filters %}
+{% load l10n %}
+
+{% if field.is_hidden %}
+    {{ field }}
+{% else %}
+    <div id="div_{{ field.auto_id }}" class="col-xs-2 form-group{% if form_show_errors and field.errors %} has-error{% endif %}{% if field.css_classes %} {{ field.css_classes }}{% endif %}">
+
+        {% if field.label %}
+            <label for="{{ field.auto_id }}"  class="control-label {{ label_class }}{% if field.field.required %} requiredField{% endif %}">
+                {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+            </label>
+        {% endif %}
+        
+        <div id="radio_id_gender" class="controls {{ field_class }}"{% if flat_attrs %} {{ flat_attrs|safe }}{% endif %}>
+    		{% include 'bootstrap3/layout/field_errors_block.html' %}
+
+   			{% for choice in field.field.choices %}
+     	   	<label class="radio{% if inline_class %}-{{ inline_class }}{% endif %}"
+     	   			for="id_{{ field.html_name }}_{{ forloop.counter }}" >
+           		<input type="radio"{% if choice.0|stringformat:"s" == field.value|stringformat:"s" %} 
+           			checked="checked"{% endif %} 
+           			name="{{ field.html_name }}" 
+           			id="id_{{ field.html_name }}_{{ forloop.counter }}" 
+           			value="{{ choice.0|unlocalize }}" {{ field.field.widget.attrs|flatatt }}>
+           			{% if choice.0 == 'F' %}
+           			<i class="fa fa-female"></i>
+           			{% elif choice.0 == 'M' %}
+           			<i class="fa fa-male"></i>
+           			{% else  %}
+           			<i class="fa fa-question"></i>
+           			{% endif %}
+           			
+        	</label>
+   			{% endfor %}
+
+   			{% include 'bootstrap3/layout/help_text.html' %}
+		</div>
+
+
+
+    </div>
+{% endif %}

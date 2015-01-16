@@ -1,0 +1,106 @@
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+{% load verbose_names %}
+
+<form id="{{ helper.form_id }}" method="post" action="{% url 'client_profile' pk=object.id %}"> 
+	{% csrf_token %}
+<p class="row"><span>{% trans 'Useful information to communicate with the client' %}</span>
+	<a class="btn btn-primary pull-right" href="#" id="show-comm-form-lines">
+		<i class="fa fa-edit"></i>
+		Edit</a>
+</p>
+<div class="row comm-form-line pull-right">
+	<button type="cancel" name="cancel-comm" class="btn btn-secondary" id="cancel-comm-form">Cancel</button>
+	<input type="submit" name="submit-comm" value="Save changes" class="btn btn-primary" id="submit-comm-form">
+</div>
+<div class="row">
+<table class="table table-user-information">
+<tbody>
+  <tr>
+    <td>{% trans 'Language of correspondance' %}</td>
+    <td>{{ object.get_com_lang_display }}</td>
+  </tr>
+  <tr class="comm-form-line">
+    <td></td>
+    <td>
+    	{{ comm_form.com_lang|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Native language' %}</td>
+    <td>{{ object.get_native_lang_display }}</td>
+  </tr>
+  <tr class="comm-form-line">
+    <td></td>
+    <td>
+    	{{ comm_form.native_lang|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Behavioral issues' %}</td>
+    
+    <td><ul class="list-unstyled">
+    	<li>{% if object.cdif_exd %}<i class="fa fa-check-square-o"></i>
+    		{% else %}<i class="fa fa-square-o"></i>
+    		{% endif %}
+    		{% get_verbose_field_name object "cdif_exd" %}
+    	</li>
+    	<li>{% if object.cdif_hoh %}<i class="fa fa-check-square-o"></i>
+    		{% else %}<i class="fa fa-square-o"></i>
+    		{% endif %}
+    		{% get_verbose_field_name object "cdif_hoh" %}
+    	</li>
+    	</ul>
+    </td>
+   
+  </tr>
+  <tr class="comm-form-line">
+    <td></td>
+    <td>
+    	{{ comm_form.cdif_exd|as_crispy_field:"bootstrap" }}
+    	{{ comm_form.cdif_hoh|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Email address' %}</td>
+    <td>{{ object.email_address }}</td>
+  </tr>
+  <tr class="comm-form-line">
+    <td></td>
+    <td>
+    	{{ comm_form.email_address|as_crispy_field:"bootstrap" }}
+    </td>
+  </tr>
+  <tr >
+    <td >{% trans 'Phone' %}</td>
+    
+    <td ><ul class="list-unstyled">
+    	{% for phone in phones %}
+    		<li>{{ phone.get_type_display }}: {{ phone.number}} {% if phone.info %}({{ phone.info}}){% endif %}</li> 
+		{% endfor %}
+    </ul>	
+    </td>
+   
+  </tr>
+  
+  <tr id="tr-phone-form" class="comm-form-line ">
+    <td colspan="2">
+    	{{ phone_form.management_form }}
+        {{ phone_form.non_form_errors }}
+        <ul class="list-unstyled">
+        {% for pform in phone_form %}
+        <li class="li-phone">
+        	<!--{% if pform.instance.pk %}{{ pform.DELETE }}Remove{% endif %}-->
+        	{% crispy pform phone_form.phone_helper%}
+        	
+        </li>
+        {% endfor %}
+        </ul>
+    </td>
+  </tr>
+  
+</tbody>
+</table>
+</div>
+</form>

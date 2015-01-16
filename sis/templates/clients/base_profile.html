@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block breadcrumb %}
+	<li><a href="#">Clients</a></li>
+	<li><a href="#">Profile</a></li>	       				
+{% endblock breadcrumb %}
+{% block content %}	      			  
+
+
+	<h4 class="page-header">{% trans 'Client Profile' %}</h4>
+    
+	<div class="col-sm-4 col-xs-12">
+		<div class="panel">    			
+	    	<div class="panel-heading">
+                 <span>{% trans 'Overview' %}</span>
+          	</div>
+           	<div class="panel-body">
+           		<div>{% trans 'Client status' %}:{{ object.get_status_display }}</div>
+           		<div> {{ object.first_name }} {{ object.middle_name }} {{ object.last_name }}</div>
+
+	    		<div>
+	    			
+	    		<i class="fa {{ object.get_gender_icon }}" title="{{ object.get_gender_display }}"></i>
+	    		<span>{{ object.get_com_lang_display }} ({% trans 'Native' %}: {{ object.get_native_lang_display }})</span>
+	    		</div>
+	    		
+				<div class="address">
+					<i class="fa fa-home"></i>
+					<span>{{ address.get_line_1 }}</span><br/>
+					<span>{{ address.get_line_2 }}</span><br/>
+					<span>{{ address.get_line_3 }}</span><br/>
+				</div>
+				
+				
+				{% for phone in phones %}
+				<div class="phone">
+					<i class="fa fa-phone"></i>
+					<span>{{ phone.type }}: {{ phone.number }}</span>
+				</div>
+				{% endfor %}
+				
+				<!--<a href="{% url 'client_update' object.id %}" class="btn">Update profile</a>-->
+	    	</div>
+	    </div>
+	</div>
+	<div class="col-sm-8 col-xs-12">
+		
+		<div class="row">
+	    		
+			<div class="tab-content col-xs-12 col-sm-9 vertical-tab-container">
+				
+				{% block tab-content %}
+				{% endblock tab-content %}
+				
+			</div>
+			<div id="tab_links" class="col-xs-12 col-sm-3">
+				<ul class="nav nav-tabs nav-stacked pull-right">
+					
+					<li class="tab-pane {% if tab == 'id' %} active {% endif %}">
+						<a href="{% url 'client_profile' tab='id' pk=object.id %}" >{% trans 'Identification' %}</a>
+					</li>
+					<li class="tab-pane {% if tab == 'comm' %} active {% endif %}">
+						<a href="{% url 'client_profile' tab='comm' pk=object.id %}" >{% trans 'Communication' %}</a>
+					</li>
+					<li class="tab-pane {% if tab == 'ref' %} active {% endif %}">
+						<a href="{% url 'client_profile_referral' pk=object.id %}" >{% trans 'Referral' %}</a>
+					</li>
+					<li class="tab-pane {% if tab == 'order' %} active {% endif %}">
+						<a href="{% url 'client_profile_order' pk=object.id %}" >{% trans 'Command' %}</a>
+					</li>
+					<!--
+					<li class="tab-pane">
+						<a href="{% url 'client_profile' tab='meal' pk=object.id %}" >{% trans 'Meal' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="{% url 'client_profile' tab='contacts' pk=object.id %}" >{% trans 'Contacts' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="{% url 'client_profile' tab='deliv' pk=object.id %}" >{% trans 'Deliveries' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="{% url 'client_profile' tab='bill' pk=object.id %}" >{% trans 'Billing' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="{% url 'client_profile' tab='hist' pk=object.id %}" >{% trans 'History' %}</a>
+					</li>
+					-->
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	
+	  
+
+{% endblock content %}
+
+{% block javascript_extra %}
+
+<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
+<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
+
+<script>
+	/* Project specific Javascript goes here. */
+$(document).ready(function() {
+	//$( "#tab_links" ).tabs();
+	 
+	var show_form_line={% if form.errors %}true{% else %}false{% endif %};
+	if (show_form_line)
+		$( ".form-line" ).show();
+	else
+		$( ".form-line" ).hide();
+	 
+    // set effect from select menu value
+    $( "#show-form-lines" ).click(function() {
+     $( ".form-line" ).show("blind");
+    });
+ 	$( "#cancel-form" ).click(function() {
+      $( ".form-line" ).hide();
+    });
+    
+//    $( "#show-comm-form-lines" ).click(function() {
+//     $( ".comm-form-line" ).show("blind");
+//    });
+// 	$( "#cancel-comm-form" ).click(function() {
+//     $( ".comm-form-line" ).hide();
+//    });
+    
+   $(".li-phone").formset({
+            prefix: '{{ phone_form.prefix }}'
+        });
+   
+	
+
+
+{% block javascript_extra_tab %}
+{% endblock javascript_extra_tab %}
+});
+
+</script>
+{% endblock javascript_extra %}

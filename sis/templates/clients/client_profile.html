@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block breadcrumb %}
+	<li><a href="#">Clients</a></li>
+	<li><a href="#">Profile</a></li>	       				
+{% endblock breadcrumb %}
+{% block content %}	      			  
+
+
+	<h4 class="page-header">{% trans 'Client Profile' %}</h4>
+    
+	<div class="col-sm-4 col-xs-12">
+		<div class="panel">    			
+	    	<div class="panel-heading">
+                 <span>{% trans 'Overview' %}</span>
+          	</div>
+           	<div class="panel-body">
+           		<p>{{ object.get_status_display }} {{ object.first_name }} {{ object.middle_name }} {{ object.last_name }}</p>
+
+	    		<div>
+	    			
+	    		<i class="fa {{ object.get_gender_icon }}" title="{{ object.get_gender_display }}"></i>
+	    		<span>{{ object.get_com_lang_display }} ({% trans 'Native' %}: {{ object.get_native_lang_display }})</span>
+	    		</div>
+	    		
+				<div class="address">
+					<i class="fa fa-home"></i>
+					<span>{{ address.get_line_1 }}</span><br/>
+					<span>{{ address.get_line_2 }}</span><br/>
+					<span>{{ address.get_line_3 }}</span><br/>
+				</div>
+				
+				
+				{% for phone in phones %}
+				<div class="phone">
+					<i class="fa fa-phone"></i>
+					<span>{{ phone.type }}: {{ phone.number }}</span>
+				</div>
+				{% endfor %}
+				
+				<!--<a href="{% url 'client_update' object.id %}" class="btn">Update profile</a>-->
+	    	</div>
+	    </div>
+	</div>
+	<div class="col-sm-8 col-xs-12">
+		
+		<div class="row">
+	    		
+			<div class="tab-content col-xs-12 col-sm-9 vertical-tab-container">
+				
+				<div id="tab-ident" class="tab-pane active">
+					
+					{% include 'clients/_client_identification.html' %}
+					    				
+				</div> <!-- div tab-ident -->
+				
+				<div id="tab-comm" class="tab-pane">
+					
+					{% include 'clients/_client_communication.html' %}
+					    				
+				</div> <!-- div tab-comm -->
+
+
+				<div id="tab-order" class="tab-pane" >
+					
+					<p>Order</p>
+						
+					<p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus
+					    ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo
+					    sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed
+					    odio dui.</p>	
+					    				
+				</div> <!-- div tab-order -->
+
+				<div id="tab-meal" class="tab-pane" >
+					
+					<p>Meal preferences</p>
+						
+					<p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus
+					    ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo
+					    sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed
+					    odio dui.</p>	
+					    				
+				</div> <!-- div tab-meal -->
+
+				<div id="tab-contacts" class="tab-pane" >
+					
+					<p>Contacts</p>
+						
+					<p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus
+					    ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo
+					    sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed
+					    odio dui.</p>	
+					    				
+				</div> <!-- div tab-contacts -->
+				
+				
+				<div id="tab-deliveries" class="tab-pane" >
+			
+					<p>Deliveries schedule</p>
+						
+					<p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus
+					    ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo
+					    sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed
+					    odio dui.</p>	
+					    				
+				</div> <!-- div tab-deliveries -->
+				
+				<div id="tab-billing" class="tab-pane" >
+			
+					<p>Billing</p>
+						
+					<p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus
+					    ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo
+					    sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed
+					    odio dui.</p>	
+					    				
+				</div> <!-- div tab-billing -->
+				
+				<div id="tab-history" class="tab-pane" >
+					
+					<p>History of changes</p>
+						
+					<p> {{ logEntries }}</p>	
+					<p> {{ address_logEntries }}</p>
+					    				
+				</div> <!-- div tab-history -->
+			</div>
+			<div id="tab_links" class="col-xs-12 col-sm-3">
+				<ul class="nav nav-tabs nav-stacked pull-right">
+					<li class="tab-pane active">
+						<a href="#tab-ident" data-toggle="tab">{% trans 'Identification' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="#tab-comm" data-toggle="tab">{% trans 'Communication' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="#tab-order" data-toggle="tab">{% trans 'Command' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="#tab-meal" data-toggle="tab">{% trans 'Meal' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="#tab-contacts" data-toggle="tab">{% trans 'Contacts' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="#tab-deliveries" data-toggle="tab">{% trans 'Deliveries' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="#tab-billing" data-toggle="tab">{% trans 'Billing' %}</a>
+					</li>
+					<li class="tab-pane">
+						<a href="#tab-history" data-toggle="tab">{% trans 'History' %}</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	
+	  
+
+{% endblock content %}
+
+{% block javascript_extra %}
+
+<script src="{% static 'plugins/jquery-formset/jquery.formset.min.js' %}"></script>
+
+
+<script>
+	/* Project specific Javascript goes here. */
+$(document).ready(function() {
+	
+    	
+	$( ".form-line" ).hide();
+	$( ".comm-form-line" ).hide();
+	 
+    // set effect from select menu value
+    $( "#show-form-lines" ).click(function() {
+     $( ".form-line" ).show("blind");
+    });
+ 	$( "#cancel-id-form" ).click(function() {
+      $( ".form-line" ).hide();
+    });
+    
+    $( "#show-comm-form-lines" ).click(function() {
+     $( ".comm-form-line" ).show("blind");
+    });
+ 	$( "#cancel-comm-form" ).click(function() {
+      $( ".comm-form-line" ).hide();
+    });
+    
+    $(".li-phone").formset({
+            prefix: '{{ phone_form.prefix }}'
+        });
+});
+
+</script>
+{% endblock javascript_extra %}

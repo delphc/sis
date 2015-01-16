@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load staticfiles i18n %}
+{% load crispy_forms_tags %}
+{% load core_filters %}
+
+{% block css_extra %}
+<link href="{% static 'plugins/jquery-ui/jquery-ui.css' %}" rel="stylesheet">
+{% endblock css_extra %}
+
+{% block breadcrumb %}
+	<li><a href="{% url 'contact_list' %}">Contacts</a></li>
+	<li><a href="#">{{ form.helper.form_title }}</a></li>	       				
+{% endblock breadcrumb %}
+{% block content %}	      			  
+
+<form method="post">{% csrf_token %}					
+	    				
+	<div class="row">
+	    <div class="col-sm-12">
+	        <div class="box">
+	    			
+	    			<div class="box-content"> 
+		   				{% crispy form %}
+		   				{% crispy phone_form phone_form_helper %}
+		   				<div class="form-actions">
+        					<input type="submit" name="submit" value="Save" class="btn btn-primary" id="submit-save">
+    					</div>
+					</div>
+			</div>
+		</div>
+	</div>
+</form>
+{% endblock content %}
+
+{% block javascript_extra %}
+
+<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
+<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+	//$('#id_cdif_exd').removeAttr('class');
+	//$('#id_cdif_exd').removeClass('checkboxinput');
+	//$('input[type="button"]').
+   $(function() {
+   	
+    //$( "#radio_id_gender" ).buttonset();
+		
+    	$('#div-client-address').formset({
+        	prefix: '{{ address_form.prefix }}',
+			formCssClass: 'dynamic-formsetaddress',
+			//autoAddLinks: false               // do not add add and delete links to the formsets
+		});
+		$('.phone_row').formset({
+        	prefix: '{{ phone_form.prefix }}',
+			formCssClass: 'dynamic-formsetphone',
+			//autoAddLinks: false               // do not add add and delete links to the formsets
+		});
+		
+		$('#id_category').change(function(){
+	      var data=$(this).val();
+	      if (data === 'N') { // for 'next of kin' category
+	      	$('#div_id_nok_type').show();
+	      	$('#div_id_cw_type').hide();
+	      	$('#div_id_organization').hide();
+	      	$('#id_organization').val('');
+	      	$('#div_id_organization label').removeClass('requiredField'); // organization no longer required
+	      	
+	      } else { // W for 'case worker' category
+	      	$('#div_id_nok_type').hide();
+	      	$('#div_id_cw_type').show();
+	      	$('#div_id_organization').show();
+	      	$('#div_id_organization label').addClass('requiredField'); // organization is now required
+	      	$('#div_id_organization label').text().append('<span class="asteriskField">*</span>');
+	      }
+      	          
+    	});
+    	$('#id_category').trigger('change');
+	});
+	
+	 
+   //DashboardTabChecker();
+});
+
+</script>
+{% endblock javascript_extra %}
+

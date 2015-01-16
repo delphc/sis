@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load staticfiles i18n %}
+{% load crispy_forms_tags %}
+
+
+{% block css_extra %}
+	<link href="{% static 'plugins/datatables/css/jquery.dataTables.css' %}" rel="stylesheet">
+	<style type="text/css">
+.datatable th[data-name="birth-date-age"] {
+    width: 100px; /*does not work*/
+}
+</style>
+
+{% endblock css_extra %}
+{% block breadcrumb %}
+	<li><a href="{% url 'client_list' %}">Clients list</a></li>	       				
+{% endblock breadcrumb %}
+{% block content %}	      			  
+<div class="row">
+		<div class="col-md-6">
+		<a class="btn btn-primary pull-right" href="{% url 'client_create' %}" id="create-client">
+			<i class="fa fa-plus"></i> {% trans "Add new client" %}
+		</a>
+        <h2 class="page-header">{% trans "Clients list" %}</h2>
+        
+        {{ datatable }}
+    </div>
+</div>
+
+{% endblock content %}
+{% block javascript_extra %}
+<script src="{% static 'plugins/datatables/js/jquery.dataTables.js' %}"></script>
+<script type="text/javascript" charset="utf8" src="{{ STATIC_URL }}js/datatableview.js"></script>
+		
+<script>
+	/* Project specific Javascript goes here. */
+datatableview.auto_initialize = false;
+$(document).ready(function() {
+	
+
+     
+    // Or, if there are common options that should be given to all select elements,
+    // you can specify them now.  data-* API attributes will override these options.
+    var common_options = {
+    
+    };
+    var clientTable = datatableview.initialize($('.datatable'), common_options);
+
+});
+
+</script>
+{% endblock javascript_extra %}
