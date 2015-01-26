@@ -7,13 +7,13 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('clients', '0019_auto_20141230_1344'),
+        ('contacts', '0002_auto_20150120_1508'),
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name='client',
-            old_name='contacts',
-            new_name='relationships',
+        migrations.AlterField(
+            model_name='organizationmember',
+            name='end_date',
+            field=models.DateField(),
         ),
     ]

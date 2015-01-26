@@ -9,10 +9,25 @@ import django_extensions.db.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('clients', '0020_auto_20141231_1252'),
+        ('clients', '0001_initial'),
     ]
 
     operations = [
+        migrations.CreateModel(
+            name='DefaultMealSide',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('created', django_extensions.db.fields.CreationDateTimeField(default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
+                ('modified', django_extensions.db.fields.ModificationDateTimeField(default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
+                ('quantity', models.PositiveIntegerField(default=1)),
+            ],
+            options={
+                'ordering': ('-modified', '-created'),
+                'abstract': False,
+                'get_latest_by': 'modified',
+            },
+            bases=(models.Model,),
+        ),
         migrations.CreateModel(
             name='DeliveryDefault',
             fields=[
@@ -47,7 +62,9 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('created', django_extensions.db.fields.CreationDateTimeField(default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
                 ('modified', django_extensions.db.fields.ModificationDateTimeField(default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
+                ('type', models.CharField(default=b'O', max_length=1, choices=[(b'E', 'Episodic'), (b'O', 'Ongoing')])),
                 ('start_date', models.DateField()),
+                ('end_date', models.DateField(null=True)),
                 ('monday', models.BooleanField(default=False)),
                 ('tuesday', models.BooleanField(default=False)),
                 ('wednesday', models.BooleanField(default=False)),
@@ -63,14 +80,12 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name='OrderStatus',
+            name='OrderStop',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('type', models.CharField(default=b'O', max_length=1, choices=[(b'E', 'Episodic'), (b'O', 'Ongoing')])),
                 ('start_date', models.DateField()),
                 ('end_date', models.DateField()),
-                ('status_code', models.CharField(default=b'P', max_length=1, choices=[(b'P', 'Pending'), (b'A', 'Active'), (b'S', 'Paused'), (b'I', 'Stopped')])),
-                ('reason_other', models.CharField(max_length=100)),
+                ('reason_other', models.CharField(max_length=100, blank=True)),
                 ('order', models.ForeignKey(to='orders.Order')),
             ],
             options={
@@ -82,15 +97,15 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('slug', models.SlugField()),
-                ('code_en', models.CharField(max_length=30)),
-                ('code_fr', models.CharField(max_length=30)),
+                ('desc_en', models.CharField(max_length=30)),
+                ('desc_fr', models.CharField(max_length=30)),
             ],
             options={
             },
             bases=(models.Model,),
         ),
         migrations.AddField(
-            model_name='orderstatus',
+            model_name='orderstop',
             name='reason_code',
             field=models.ForeignKey(to='orders.StatusReasonCode'),
             preserve_default=True,
@@ -104,7 +119,19 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='deliverydefault',
             name='sides',
-            field=models.ManyToManyField(to='orders.MealSide'),
+            field=models.ManyToManyField(to='orders.MealSide', through='orders.DefaultMealSide'),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='defaultmealside',
+            name='delivery',
+            field=models.ForeignKey(to='orders.DeliveryDefault'),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='defaultmealside',
+            name='side',
+            field=models.ForeignKey(to='orders.MealSide'),
             preserve_default=True,
         ),
     ]

@@ -2,19 +2,18 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-from django.conf import settings
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('clients', '0008_client_created_by'),
+        ('clients', '0002_auto_20150120_1413'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='client',
-            name='created_by',
-            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+            model_name='relationtype',
+            name='contact_type',
+            field=models.CharField(default=b'N', max_length=1, choices=[(b'N', 'Next of kin'), (b'W', 'Social worker')]),
         ),
     ]

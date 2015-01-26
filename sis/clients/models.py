@@ -3,6 +3,7 @@ import datetime
 from datetime import date
 
 from django.db import models
+from django.contrib.contenttypes.generic import GenericRelation
 from django.core.urlresolvers import reverse_lazy
 from django_extensions.db.models import TimeStampedModel
 from django.utils.translation import ugettext_lazy as _
@@ -12,7 +13,7 @@ from auditlog.registry import auditlog
 from auditlog.models import AuditlogHistoryField
 from diplomat.fields import LanguageChoiceField
 
-from contacts.models import Person, Contact
+from contacts.models import Address, ContactEntity, Contact, ContactInfo, SocialWorker
 from users.models import User
 
 
@@ -23,8 +24,8 @@ class ReferralReason(models.Model):
     reason_en = models.CharField(max_length=100)
     
     
-class Client(Person):
-    
+class Client(ContactEntity):
+        
     FEMALE='F'
     MALE='M'
     UNKNOWN='U'
@@ -47,10 +48,12 @@ class Client(Person):
     
     
     gender = models.CharField(max_length=1, choices=GENDER_CODES, default=UNKNOWN)
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
     middle_name = models.CharField(max_length=50, blank=True)
-    
+     
     maiden_name = models.CharField(max_length=50, blank=True)
-    
+     
     birth_date  = models.DateField()
     
     
@@ -84,7 +87,7 @@ class Client(Person):
         (False, _('No')),
     )
     direct_contact = models.BooleanField(default=True, choices=YES_NO_CHOICES,)
-    
+    contact_info = GenericRelation(ContactInfo)
     relationships = models.ManyToManyField(Contact, through='Relationship')
     
     directions = models.TextField(max_length=256, blank=True, default='')
@@ -143,10 +146,22 @@ class Referral(models.Model):
     ref_date = models.DateField()
     reasons = models.ManyToManyField(ReferralReason)
     notes = models.TextField(max_length=250, blank=True, default='')
+
+class RelationType(models.Model):
+    
+    
+    contact_type = models.CharField(max_length=1, choices=Contact.CONTACT_TYPE_CODES, default=Contact.NEXT_OF_KIN)
+    type_en = models.CharField(max_length=20)
+    type_fr = models.CharField(max_length=20)
+    
+    def __unicode__(self):
+        return self.type_en
     
 class Relationship(TimeStampedModel):
     client = models.ForeignKey(Client)
     contact = models.ForeignKey(Contact)
+    type = models.ForeignKey(RelationType, blank=True, null=True)
+
     emergency = models.BooleanField(_('Emergency contact'), default=False)
     follow_up = models.BooleanField(_('Follow-up'), default=False)
     info = models.CharField(max_length=100, blank=True, verbose_name=_('Additional information'))

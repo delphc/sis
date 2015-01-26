@@ -23,7 +23,7 @@ from cbvtoolkit.views import MultiFormView
 
 from .forms import ClientCreateForm, IdentificationForm, CommunicationForm, ReferralForm
 
-from contacts.forms import ContactCreateForm, AddressFormSet, AddressFormSetHelper, PhoneFormSet, PhoneFormSetHelper
+from contacts.forms import  AddressFormSet, AddressFormSetHelper, PhoneFormSet, PhoneFormSetHelper
 from orders.forms import OrderForm, OrderStopForm, OrderStopFormHelper, DeliveryDefaultForm, DefaultMealSideFormSet
 
 # Import the customized User model

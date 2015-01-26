@@ -7,13 +7,13 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0004_auto_20150111_0933'),
+        ('contacts', '0003_auto_20150120_1620'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='orderstop',
-            name='reason_other',
-            field=models.CharField(max_length=100, blank=True),
+            model_name='organizationmember',
+            name='end_date',
+            field=models.DateField(null=True),
         ),
     ]

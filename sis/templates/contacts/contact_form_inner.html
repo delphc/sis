@@ -13,25 +13,7 @@
 {% endblock breadcrumb %}
 {% block content %}	      			  
 
-<div class="modal fade" id="form-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-      	<!--
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          
-        </div>
-       -->
-        <div id="form-modal-body" class="modal-body">
-          
-		</div>
-       	<div class="modal-footer">
-        	<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-      	</div>
-     </div>
-   </div>
-</div>
-<form method="post" id="contact-create-form" action={% url 'contact_create' %}>{% csrf_token %}					
+<form method="post">{% csrf_token %}					
 	    				
 	<div class="row">
 	    <div class="col-sm-12">
@@ -44,8 +26,7 @@
 	    		</div>
 		   		
    				<div id="form-sw" class="well">
-   					 
-   					 {% crispy org_form %}
+   					{% crispy org_form %}
    				</div>
    				<div id="form-address" class="panel panel-default">
    					<div class="panel-heading">{%trans 'Address' %}</div>
@@ -118,7 +99,7 @@
    					</div>
    				</div>
    				<div class="form-actions">
-     				<input type="submit" name="submit" value="Save" class="btn btn-primary" id="submit-contact">
+     				<input type="submit" name="submit" value="Save" class="btn btn-primary" id="submit-save">
     			</div>
 			</div>
 		</div>
@@ -169,40 +150,6 @@ $(document).ready(function() {
     	{% else %}
     		$('#id_contact_type').val('{{ object.contact_type.0 }}').trigger('change');
     	{% endif %}
-    	
-    	var formAjaxSubmit = function(form, modal) {
-                $(form).submit(function (e) {
-                    e.preventDefault();
-                    $.ajax({
-                        type: $(this).attr('method'),
-                        url: $(this).attr('action'),
-                        data: $(this).serialize(),
-                        success: function (xhr, ajaxOptions, thrownError) {
-                        	alert(xhr.pk);
-                            if ( $(xhr).find('.has-error').length > 0 ) {
-                                $(modal).find('.modal-body').html(xhr);
-                                formAjaxSubmit(form, modal);
-                            } else {
-                                $(modal).modal('toggle');
-                                var newOrg = xhr;
-            					var newSelect = $('#id_sw-organization');
-            					newSelect.append('<option value="' + newOrg.pk + '" >' + newOrg.name + '</option>');
-            					$('#id_sw-organization').replaceWith(newSelect);
-           						$("#id_sw-organization option[value='" + newOrg.pk + "']").attr('selected', 'selected');
-             
-                            }
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                        }
-                    });
-                });
-            }
-        $('#new-org-button').click(function() {
-            $('#form-modal-body').load('/contacts/org/create', function () {
-                $('#form-modal').modal('toggle');
-                formAjaxSubmit('#org-create-form', '#form-modal');
-            });
-        });
 	});
 	
 	 

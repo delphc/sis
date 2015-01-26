@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('clients', '0018_auto_20141230_1344'),
+        ('clients', '0001_initial'),
         ('contacts', '0001_initial'),
     ]
 
@@ -16,6 +16,12 @@ class Migration(migrations.Migration):
             model_name='relationship',
             name='contact',
             field=models.ForeignKey(to='contacts.Contact'),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='relationship',
+            name='type',
+            field=models.ForeignKey(blank=True, to='clients.RelationType', null=True),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -36,21 +42,9 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(to='clients.ReferralReason'),
             preserve_default=True,
         ),
-        migrations.AlterModelOptions(
-            name='client',
-            options={},
-        ),
-        migrations.RemoveField(
-            model_name='client',
-            name='referralNotes',
-        ),
-        migrations.RemoveField(
-            model_name='client',
-            name='referralReasons',
-        ),
         migrations.AddField(
             model_name='client',
-            name='contacts',
+            name='relationships',
             field=models.ManyToManyField(to='contacts.Contact', through='clients.Relationship'),
             preserve_default=True,
         ),

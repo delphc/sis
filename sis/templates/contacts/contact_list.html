@@ -15,7 +15,10 @@
 {% endblock breadcrumb %}
 {% block content %}	      			  
 <div class="row">
-		<div class="col-md-6">
+	<div class="col-md-6">
+		<a class="btn btn-primary pull-right" href="{% url 'contact_create' %}" id="create-contact">
+			<i class="fa fa-plus"></i> {% trans "Register contact" %}
+		</a>
         <h2 class="page-header">{% trans "Contacts list" %}</h2>
         {{ datatable }}
     </div>

@@ -17,17 +17,33 @@ from diplomat.fields import LanguageChoiceField
 
 from users.models import User
 
+class ContactEntity(TimeStampedModel):
+    class Meta:
+        abstract = True
 
-# Contact informations
+class ContactInfo(models.Model):
+    
+    limit = models.Q(app_label = 'contacts', model = 'ContactEntity') # | models.Q(app_label = 'contacts', model = 'Organization') | models.Q(app_label = 'clients', model = 'Client')
+          
+    content_type = models.ForeignKey(ContentType, limit_choices_to = limit)
+    object_id = models.PositiveIntegerField(db_index=True)
+    content_object = GenericForeignKey()
+     
+    #owner = models.OneToOneField(ContactEntity)
+    email_address = models.EmailField(blank=True)
+
+
 
 class Address(models.Model):
     history = AuditlogHistoryField()
     
-    limit = models.Q(app_label = 'contacts', model = 'Contact') | models.Q(app_label = 'contacts', model = 'Organization') | models.Q(app_label = 'clients', model = 'Client')
-        
-    content_type = models.ForeignKey(ContentType, limit_choices_to = limit)
-    object_id = models.PositiveIntegerField(db_index=True)
-    content_object = GenericForeignKey()
+#     limit = models.Q(app_label = 'contacts', model = 'Contact') | models.Q(app_label = 'contacts', model = 'Organization') | models.Q(app_label = 'clients', model = 'Client')
+#          
+#     content_type = models.ForeignKey(ContentType, limit_choices_to = limit)
+#     object_id = models.PositiveIntegerField(db_index=True)
+#     content_object = GenericForeignKey()
+#
+    contact_info = models.ForeignKey(ContactInfo)
     
     street = models.CharField(max_length=250, default='', verbose_name=_('Street name & number'))
     apt = models.CharField(max_length=10, default='', verbose_name=_('Apt. #'))
@@ -35,7 +51,7 @@ class Address(models.Model):
     zip_code = models.CharField(max_length=7)
     city = models.CharField(max_length=50, default=_('Montreal'))
     prov = models.CharField(max_length=30, default=_('Qc'))
-    info = models.CharField(max_length=100, blank=True, verbose_name=_('Additional information'))
+    info = models.CharField(max_length=100, blank=True, verbose_name=_('Directions'))
     
     def __unicode__(self):
         return self.get_line_1() + " / " + self.get_line_2() + " / " +  self.get_line_3()
@@ -53,6 +69,7 @@ class Address(models.Model):
 class Phone(models.Model):
     history = AuditlogHistoryField()
 
+    
     HOME='H'
     CELL='C'
     WORK='W'
@@ -63,82 +80,112 @@ class Phone(models.Model):
         (WORK, _('Work')),
     )
     
-    limit = models.Q(app_label = 'contacts', model = 'Contact') | models.Q(app_label = 'contacts', model = 'Organization') | models.Q(app_label = 'clients', model = 'Client')
-    
-    content_type = models.ForeignKey(ContentType, limit_choices_to = limit)
-    object_id = models.PositiveIntegerField(db_index=True)
-    content_object = GenericForeignKey()
-    
+    contact_info = models.ForeignKey(ContactInfo)
     
     priority = models.PositiveIntegerField(blank=True, null=True)
     type = models.CharField(max_length=1, choices=PHONE_TYPE_CODES)
     number = models.CharField(max_length=20)
-    info = models.CharField(max_length=128, blank=True)
+    extension = models.CharField(max_length=10, blank=True, default='')
+    info = models.CharField(_('Additional information'), max_length=50, blank=True)
     
     def __unicode__(self):
         return self.number
 
-class Person(TimeStampedModel):
-    class Meta:
-        abstract = True
+    
+class Organization(ContactEntity):
+    
+    name = models.CharField(max_length=100)
+    contact_info = GenericRelation(ContactInfo)
+#     phones = GenericRelation(Phone, related_query_name='phones')
+#     address = GenericRelation(Address, related_query_name='address')
+#     
+    
+    def __unicode__(self):
+        return self.name
+    
+    def get_absolute_url(self):
+        return reverse_lazy('org_update', kwargs={'pk':str(self.id)})
+    
+    def get_contact_info(self):
+        if self.contact_info.all():
+            return self.contact_info.all()[0]
+        else:
+            return None 
+        
+
+class Contact(ContactEntity):
         
     history = AuditlogHistoryField()
     
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     
-    email_address = models.EmailField(blank=True)
+    CLIENT = 'C'
+    NEXT_OF_KIN='N'
+    SOCIAL_WORKER='W'
+
+    CONTACT_TYPE_CODES= (
+        (NEXT_OF_KIN, _('Next of kin')),
+        (SOCIAL_WORKER, _('Social worker')),
+        )
+    contact_type = models.CharField(max_length=1, choices=CONTACT_TYPE_CODES, default=NEXT_OF_KIN)
     
-    phones = GenericRelation(Phone, related_query_name='phones')
-    address = GenericRelation(Address, related_query_name='address')
-
-    def get_full_name(self):
+    contact_info = GenericRelation(ContactInfo)
+    
+    work = models.ManyToManyField(Organization, through='OrganizationMember')
+    
+    
+    def get_full_name(self):  
         return self.first_name + " " + self.last_name
-
+    
     def __unicode__(self):
         return self.get_full_name()
-    
-class Organization(TimeStampedModel):
-    
-    name = models.CharField(max_length=100)
-    phones = GenericRelation(Phone, related_query_name='phones')
-    address = GenericRelation(Address, related_query_name='address')
-    
-    def __unicode__(self):
-        return self.name
-
-class ContactType(models.Model):
-    NEXT_OF_KIN='N'
-    CASE_WORKER='W'
-
-    CATEGORY_CODES= (
-        (NEXT_OF_KIN, _('Next of kin')),
-        (CASE_WORKER, _('Case worker')),
-        )
-    
-    category = models.CharField(max_length=1, choices=CATEGORY_CODES, default=NEXT_OF_KIN)
-    type_en = models.CharField(max_length=20)
-    type_fr = models.CharField(max_length=20)
-    
-    def __unicode__(self):
-        return self.type_en
-    
-class Contact(Person):
-    
-    category = models.CharField(max_length=1, choices=ContactType.CATEGORY_CODES, default=ContactType.NEXT_OF_KIN)
-    type = models.ForeignKey(ContactType, blank=True, null=True)
-    
-    organization = models.ForeignKey(Organization, blank=True, null=True)
-    
-    referring = models.BooleanField(_('Referring contact'), default=False)
-    emergency = models.BooleanField(_('Emergency contact'), default=False)
     
     def get_absolute_url(self):
         return reverse_lazy('contact_update', kwargs={'pk':str(self.id)})
 
+    def get_contact_info(self):
+        return self.contact_info.all()[0]
+    
+    def get_organization(self):
+        """
+        Returns latest instance of OrganizationMember if there is one defined 
+        """
+        if (self.contact_type == self.NEXT_OF_KIN):
+            return None
+        else:
+            return self.organizationmember_set.latest(field_name='start_date')
 
 
-auditlog.register(Contact)
+class NextOfKin(Contact):
+    class Meta:
+        proxy = True
+    
+    #email_address optional
+    #phones mandatory - min 1 max 3
+    #adress mandatory - min 1 max 1
+    #work optional
+    
+class SocialWorker(Contact):
+    class Meta:
+        proxy = True
+    
+    #email_address optional
+    #phones mandatory - min 1 max 3
+    #adress mandatory - min 1 max 1
+    #work optional
+    
+class OrganizationMember(models.Model):
+    organization = models.ForeignKey(Organization)
+    social_worker = models.ForeignKey(Contact)
+    start_date = models.DateField()
+    end_date = models.DateField(blank=True, null=True)
+    position = models.CharField(max_length=20)
+    
+    
+auditlog.register(NextOfKin)
+
+auditlog.register(SocialWorker)
 
 auditlog.register(Organization)
 

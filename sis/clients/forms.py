@@ -53,9 +53,11 @@ class Formset(LayoutObject):
 class ClientCreateForm(forms.ModelForm):
     class Meta:
         model = Client
-        fields = ['gender', 'first_name', 'middle_name', 'last_name', 'maiden_name', 'birth_date',
-                  'email_address' ]
+        fields = ['gender', 'first_name', 'middle_name', 'last_name', 'maiden_name', 
+                  'birth_date' ]
         localized_fields = ('__all__')
+        
+        email_address = forms.CharField()
     
         
     def __init__(self, *args, **kwargs):
@@ -149,7 +151,7 @@ class IdentificationForm(ProfileForm):
 class CommunicationForm(ProfileForm):
     class Meta:
         model = Client
-        fields = ['com_lang', 'native_lang', 'direct_contact', 'cdif_exd', 'cdif_hoh', 'cdif_anl', 'cdif_cog', 'email_address']
+        fields = ['com_lang', 'native_lang', 'direct_contact', 'cdif_exd', 'cdif_hoh', 'cdif_anl', 'cdif_cog']
         localized_fields = ('__all__')
         widgets = {
             'direct_contact' : forms.RadioSelect
@@ -163,7 +165,6 @@ class CommunicationForm(ProfileForm):
         # does not work
         self.fields['com_lang'].label=''
         self.fields['native_lang'].label=''
-        self.fields['email_address'].label=''
         self.fields['direct_contact'].label=''
         # NB: need to keep label for fields displayed as checkboxes
        
