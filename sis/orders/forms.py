@@ -17,14 +17,7 @@ from crispy_forms.utils import flatatt
 from models import Order, OrderStop, DeliveryDefault, DefaultMealSide
 from clients.forms import ProfileForm
    
-class RefReasonsModelChoiceField(forms.ModelMultipleChoiceField):
-    lang = None
-    
-    def label_from_instance(self, obj):
-        if self.lang == "en":
-            return obj.reason_en 
-        else:
-            return obj.reason_fr
+
     
 class OrderForm(ProfileForm):
     create_or_update_stop = forms.BooleanField(

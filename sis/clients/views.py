@@ -12,7 +12,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.forms.models import formset_factory
 from django.http import HttpResponseRedirect, Http404
 from django.utils.translation import ugettext as _
-from django.views.generic import CreateView, UpdateView, DetailView, ListView, TemplateView
+from django.views.generic import FormView, CreateView, UpdateView, DetailView, ListView, TemplateView
+from django.views.generic.detail import SingleObjectMixin
 
 from braces.views import LoginRequiredMixin
 #from django_datatables_view.base_datatable_view import BaseDatatableView
@@ -21,13 +22,14 @@ from datatableview.helpers import link_to_model
 from auditlog.models import LogEntry
 from cbvtoolkit.views import MultiFormView
 
-from .forms import ClientCreateForm, IdentificationForm, CommunicationForm, ReferralForm
+from .forms import ClientLookupForm, ClientCreateForm, ClientSetupForm, IdentificationForm, CommunicationForm, ReferralForm
 
 from contacts.forms import  AddressFormSet, AddressFormSetHelper, PhoneFormSet, PhoneFormSetHelper
 from orders.forms import OrderForm, OrderStopForm, OrderStopFormHelper, DeliveryDefaultForm, DefaultMealSideFormSet
 
 # Import the customized User model
 from .models import Client, Referral
+from core.models import PendedForm, PendedValue
 from contacts.models import Address, Phone
 from orders.models import Order, OrderStop
 
@@ -85,9 +87,130 @@ class ClientListView(LoginRequiredMixin, DatatableView):
     def get_entry_bday_age(self, instance, *args, **kwargs):
         return "%s (%s)" % (instance.birth_date, instance.get_age())
     
-
-        
 class ClientCreateView(LoginRequiredMixin, ClientActionMixin, CreateView):
+    model = Client
+    action = "create" # used for ClientActionMixin functionality
+    form_class = ClientCreateForm
+    success_url = 'client_setup'
+    
+#     def get_context_data(self, **kwargs):
+#         context = super(ClientCreateView, self).get_context_data(**kwargs)
+#         context['address'] = self.address
+#         return context
+    
+    
+    def get(self, request, *args, **kwargs):
+        """
+        Handles GET requests and instantiates blank versions of the form
+        and its inline formsets.
+        """
+        self.object = None
+        form_class = self.get_form_class()
+        form = self.get_form(form_class)
+        
+        return self.render_to_response(
+            self.get_context_data(form=form))
+
+    # overrides ProcessFormView.post
+    def post(self, request, *args, **kwargs):
+        self.object = None
+        form_class = self.get_form_class()
+        form = self.get_form(form_class)
+        
+        if (form.is_valid()):
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+    
+    def form_valid(self, form):
+        self.object = form.save()
+        
+        return HttpResponseRedirect(
+                                    #overrides success_url
+                                    reverse_lazy('client_setup', kwargs={'pk':str(self.object.pk)}))
+    
+    def form_invalid(self, form):
+        
+        return self.render_to_response(
+            self.get_context_data(form = form))
+        
+class ClientSetupView(SingleObjectMixin, FormView):
+    model = Client
+    form_class = ClientSetupForm
+    pend_button_name = 'pend'
+    template_name = "clients/client_setup_form.html"
+
+    def get_form_kwargs(self):
+        """
+        Returns a dictionary of arguments to pass into the form instantiation.
+        If resuming a pended form, this will retrieve data from the database.
+        """
+        object_pk = self.kwargs.get(self.pk_url_kwarg)
+        if 'resume' in self.request.path_info:
+            print >>sys.stderr, '*** PENDING form *** %s' 
+            import_path = self.get_import_path(self.get_form_class())
+            return { 'object_pk': object_pk, 'data': self.get_pended_data(import_path, object_pk)}
+        else:
+            print >>sys.stderr, '*** REGULAR form *** %s' 
+            
+            return super(ClientSetupView, self).get_form_kwargs()
+    
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super(ClientSetupView, self).get(request, *args, **kwargs)
+        
+    def post(self, request, *args, **kwargs):
+        """
+        Handles POST requests with form data. If the form was pended, it doesn't follow
+        the normal flow, but saves the values for later instead.
+        """
+        self.object = self.get_object()
+        
+        if self.pend_button_name in self.request.POST:
+            form_class = self.get_form_class()
+            form = self.get_form(form_class)
+            print >>sys.stderr, '***  form data *** %s' % form.data
+            self.form_pended(form)
+            return HttpResponseRedirect(
+                                        reverse_lazy('client_setup_resume', kwargs={'pk':str(self.object.pk)}))
+            #return self.render_to_response(
+            #                               self.get_context_data(form=form))
+        else:
+            return super(ClientSetupView, self).post(request, *args, **kwargs)
+            
+    # Custom methods follow
+
+    def get_import_path(self, form_class):
+        return '{0}.{1}'.format(form_class.__module__, form_class.__name__)
+
+#     def get_form_hash(self, form):
+#         content = ','.join('{0}:{1}'.format(n, form.data[n]) for n in form.fields.keys())
+#         return md5(content).hexdigest()
+
+    def form_pended(self, form):
+        import_path = self.get_import_path(self.get_form_class())
+        object_pk = self.get_object().pk
+        pended_form, created = PendedForm.objects.get_or_create(form_class=import_path,
+                                                   object_pk=object_pk)
+        for name in form.fields.keys():
+            print >>sys.stderr, '***  get or create pended value for *** %s' % name
+            field_value = form.data[name]
+            pended_value, value_created = pended_form.data.get_or_create(name=name, defaults={'value':field_value })
+            if not value_created:
+                print >>sys.stderr, '***  update pended value for *** %s' % name
+            
+                pended_value.value=field_value  
+                pended_value.save()      
+            else:
+                print >>sys.stderr, '***  created pended value for *** %s' % name
+        
+
+    def get_pended_data(self, import_path, object_pk):
+        data = PendedValue.objects.filter(form__form_class=import_path, form__object_pk=object_pk)
+        return dict((d.name, d.value) for d in data)
+        
+        
+class OldClientCreateView(LoginRequiredMixin, ClientActionMixin, CreateView):
     model = Client
     action = "create" # used for ClientActionMixin functionality
     form_class = ClientCreateForm

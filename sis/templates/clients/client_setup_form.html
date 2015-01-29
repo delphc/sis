@@ -13,7 +13,7 @@
 {% endblock breadcrumb %}
 {% block content %}	      			  
 
-<form method="post">{% csrf_token %}					
+<form method="post" action={% url 'client_setup' object.pk %}>{% csrf_token %}					
 	    				
 	<div class="row">
 	    <div class="col-sm-12">
@@ -39,6 +39,8 @@
 		   				<div>
 		   					<button type="cancel" name="cancel" class="btn btn-secondary" id="cancel-form">Cancel</button>
 							<input type="submit" name="submit" value="Save changes" class="btn btn-primary" id="submit-form">
+							<input type="submit" name="pend" value="Save for later" class="btn btn-primary" id="pend-form">
+
 						</div>
 					</div>
 			</div>
@@ -52,6 +54,36 @@
 <script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
 <script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
 <script type="text/javascript">
+$(document).ready(function() {
+	//$('#id_cdif_exd').removeAttr('class');
+	//$('#id_cdif_exd').removeClass('checkboxinput');
+	//$('input[type="button"]').
+   $(function() {
+   	
+    //$( "#radio_id_gender" ).buttonset();
+    $( "#id_birth_date" ).datepicker({
+      changeMonth: true,
+      changeYear: true,
+      minDate: new Date(1900, 1 - 1, 1),
+      yearRange: "c-100:c-20",
+      dateFormat: "dd/mm/yy"
+    });
+    
+	$(function() {
+		
+    	//$('#div-client-address').formset({
+        //	prefix: '{{ address_form.prefix }}',
+		//	formCssClass: 'dynamic-formsetaddress',
+		//	//autoAddLinks: false               // do not add add and delete links to the formsets
+		//});
+		
+	});
+	
+	
+  });
+ 
+   //DashboardTabChecker();
+});
 
 </script>
 {% endblock javascript_extra %}

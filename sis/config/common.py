@@ -33,6 +33,7 @@ class Common(Configuration):
         # Useful template tags:
         # 'django.contrib.humanize',
 
+        'autocomplete_light', # must be before django.contrib.admin (as per doc)
         # Admin
         'django.contrib.admin',
     )
@@ -58,6 +59,7 @@ class Common(Configuration):
         'contacts',
         'orders',
         'food',
+        'deliveries'
     )
 
     # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

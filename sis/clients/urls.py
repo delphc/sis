@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.conf.urls import patterns, url
 
-from clients.views import ClientListView,  ClientCreateView, ClientUpdateView, ClientProfileView, ClientReferralView, ClientOrderView
+from clients.views import ClientListView,  ClientCreateView, ClientSetupView, ClientUpdateView, ClientProfileView, ClientReferralView, ClientOrderView
 #ClientListViewJson,
 
 urlpatterns = patterns('clients.views',
@@ -20,6 +20,16 @@ urlpatterns = patterns('clients.views',
         regex=r'^create/$',
         view=ClientCreateView.as_view(),
         name='client_create'
+    ),
+    url(
+        regex=r'^setup/(?P<pk>\d+)$',
+        view=ClientSetupView.as_view(),
+        name='client_setup'
+    ),
+    url(
+        regex=r'^setup/resume/(?P<pk>\d+)$',
+        view=ClientSetupView.as_view(),
+        name='client_setup_resume'
     ),
     url(
         regex=r'^profile/(?P<tab>\w+)/(?P<pk>\d+)$',

@@ -1,5 +1,7 @@
+import autocomplete_light
 from django import forms
 
+from django.core.exceptions import NON_FIELD_ERRORS
 from django.core.urlresolvers import reverse_lazy
 from django.forms.formsets import formset_factory
 from django.contrib.contenttypes.forms import generic_inlineformset_factory, BaseGenericInlineFormSet
@@ -16,40 +18,43 @@ from crispy_forms.utils import flatatt
 
 from models import Client, Referral, ReferralReason
 from contacts.models import Address, Phone
+from deliveries.models import Route
+
+from core.forms import PendForm
 from contacts.forms import AddressFormSet, PhoneFormSet
 
-class Formset(LayoutObject):
-    """
-    Layout object. It renders an entire formset, as though it were a Field.
-
-    Example::
-
-    Formset("attached_files_formset")
-    """
-
-    template = "core/formset.html" 
-
-    def __init__(self, div_id, formset_name_in_context, template=None):
-        self.div_id = div_id
-        self.formset_name_in_context = formset_name_in_context
-                    
-        # crispy_forms/layout.py:302 requires us to have a fields property
-        self.fields = []
-
-        # Overrides class variable with an instance level variable
-        if template:
-            self.template = template
-            
-#     def div_id(self):
-#         return self.div_id
     
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
-        formset = context[self.formset_name_in_context]
-        return render_to_string(self.template, {'wrapper': self,
-                                                    'formset': formset})
+class ClientLookupForm(autocomplete_light.ModelForm):
+    class Meta:
+        model = Client
+        fields = [ 'first_name', 'last_name' ]
+    
+    name = autocomplete_light.ChoiceField('ClientAutocomplete')
+    
+    """
+    This form is used to get minimal information to check for client existency before creation
+    """
+    #route = forms.ModelChoiceField(queryset=Route.objects.all())
+
+    def __init__(self, *args, **kwargs):
+        super(ClientLookupForm, self).__init__(*args, **kwargs)
         
-        
- 
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_id = 'id-clientLookupForm'
+        #self.helper.form_action = reverse('client_create')
+        self.helper.form_title = 'Client Lookup'
+        self.helper.layout = Layout(
+            Div(HTML('<h4 class="page-header">{{ form_title }}'),
+                css_class="row"),
+            Div(
+                Field('first_name', wrapper_class="col-xs-3"),
+                Field('last_name', wrapper_class="col-xs-3"),
+                
+                css_class="row"
+                )
+            )  
+         
 class ClientCreateForm(forms.ModelForm):
     class Meta:
         model = Client
@@ -57,7 +62,13 @@ class ClientCreateForm(forms.ModelForm):
                   'birth_date' ]
         localized_fields = ('__all__')
         
-        email_address = forms.CharField()
+        error_messages = {
+            NON_FIELD_ERRORS: {
+                'unique_together': "%(model_name)s's %(field_labels)s are not unique.",
+                }
+            }
+        
+    #email_address = forms.CharField()
     
         
     def __init__(self, *args, **kwargs):
@@ -83,10 +94,6 @@ class ClientCreateForm(forms.ModelForm):
             Div(
                 Field('birth_date', wrapper_class="col-xs-2"),   
                 Field('maiden_name',wrapper_class="col-xs-3"),
-                css_class="row"
-                ),
-            Div(
-                Field('email_address', wrapper_class="col-xs-6"),
                 css_class="row"
                 )
  
@@ -114,8 +121,17 @@ class ClientCreateForm(forms.ModelForm):
         
         return cleaned_data
 
+class ClientSetupForm(PendForm):
+    birth_date = forms.DateField()
+    
+    def __init__(self, *args, **kwargs):
+        super(ClientSetupForm, self).__init__(*args, **kwargs)
         
-
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_id = 'id-clientSetupForm'
+        self.helper.form_title = 'Client Profile Setup'
+        self.helper.form_tag = False
 
 class ProfileForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

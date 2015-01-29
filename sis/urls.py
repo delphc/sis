@@ -12,6 +12,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^$', 'core.views.home', name='home'),
+    url(r'^autocomplete/', include('autocomplete_light.urls')),
     #url(r'^$',  # noqa
     #       TemplateView.as_view(template_name='pages/home.html'),
     #       name="home"),

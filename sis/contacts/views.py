@@ -14,6 +14,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.utils.translation import ugettext as _
 from django.views.generic import CreateView, UpdateView, DetailView, ListView, TemplateView, FormView
 
+
 from braces.views import LoginRequiredMixin
 from datatableview.views import DatatableView
 from datatableview.helpers import link_to_model

@@ -51,12 +51,14 @@ class Client(ContactEntity):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     middle_name = models.CharField(max_length=50, blank=True)
+    
+    class Meta:
+        unique_together = (('first_name', 'last_name'),)
      
     maiden_name = models.CharField(max_length=50, blank=True)
      
     birth_date  = models.DateField()
-    
-    
+        
     status = models.CharField(max_length=1, choices=STATUS_CODES, default=PENDING)
     
     ENGLISH='EN'
@@ -99,7 +101,10 @@ class Client(ContactEntity):
         return self.get_full_name()
     
     def get_absolute_url(self):
-        return reverse_lazy('client_profile', kwargs={'tab': 'id', 'pk':str(self.id)})
+        if self.status == self.PENDING:
+            return reverse_lazy('client_setup_resume', kwargs={'pk':str(self.id)})
+        else:
+            return reverse_lazy('client_profile', kwargs={'tab': 'id', 'pk':str(self.id)})
 
     def get_gender_icon(self):
         if self.gender == self.MALE:
@@ -139,7 +144,11 @@ class Client(ContactEntity):
             return None
         else:
             return self.referral_set.latest(field_name='ref_date')
-        
+
+# class ClientProfile(models.Model):   
+#     client = models.OneToOneField(Client)
+#     
+     
 class Referral(models.Model):
     client = models.ForeignKey(Client)
     contact = models.ForeignKey(Contact)
