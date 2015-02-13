@@ -3,10 +3,12 @@ import datetime
 import logging
 import sys
 
+from django import forms
 from django.shortcuts import render
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.formtools.wizard.views import SessionWizardView
 from django.core.urlresolvers import reverse_lazy
 from django.core.exceptions import ImproperlyConfigured
 from django.forms.models import formset_factory
@@ -15,16 +17,16 @@ from django.utils.translation import ugettext as _
 from django.views.generic import FormView, CreateView, UpdateView, DetailView, ListView, TemplateView
 from django.views.generic.detail import SingleObjectMixin
 
-from braces.views import LoginRequiredMixin
+from braces.views import LoginRequiredMixin, SetHeadlineMixin
 #from django_datatables_view.base_datatable_view import BaseDatatableView
 from datatableview.views import DatatableView
 from datatableview.helpers import link_to_model
 from auditlog.models import LogEntry
 from cbvtoolkit.views import MultiFormView
 
-from .forms import ClientLookupForm, ClientCreateForm, ClientSetupForm, IdentificationForm, CommunicationForm, ReferralForm
+from .forms import  ClientCreateForm, ClientSetupForm, IdentificationForm, CommunicationForm, ReferralForm
 
-from contacts.forms import  AddressFormSet, AddressFormSetHelper, PhoneFormSet, PhoneFormSetHelper
+from contacts.forms import  FullContactForm, ContactInfoForm, AddressForm, AddressFormSet, AddressFormSetHelper, HomePhoneFormSet,  PhoneFormSetHelper
 from orders.forms import OrderForm, OrderStopForm, OrderStopFormHelper, DeliveryDefaultForm, DefaultMealSideFormSet
 
 # Import the customized User model
@@ -92,6 +94,7 @@ class ClientCreateView(LoginRequiredMixin, ClientActionMixin, CreateView):
     action = "create" # used for ClientActionMixin functionality
     form_class = ClientCreateForm
     success_url = 'client_setup'
+    cancel_url = 'client_list'
     
 #     def get_context_data(self, **kwargs):
 #         context = super(ClientCreateView, self).get_context_data(**kwargs)
@@ -113,6 +116,10 @@ class ClientCreateView(LoginRequiredMixin, ClientActionMixin, CreateView):
 
     # overrides ProcessFormView.post
     def post(self, request, *args, **kwargs):
+        
+        if 'cancel' in request.POST:
+            return HttpResponseRedirect(reverse_lazy(self.cancel_url))
+        
         self.object = None
         form_class = self.get_form_class()
         form = self.get_form(form_class)
@@ -134,82 +141,231 @@ class ClientCreateView(LoginRequiredMixin, ClientActionMixin, CreateView):
         return self.render_to_response(
             self.get_context_data(form = form))
         
-class ClientSetupView(SingleObjectMixin, FormView):
-    model = Client
-    form_class = ClientSetupForm
-    pend_button_name = 'pend'
-    template_name = "clients/client_setup_form.html"
 
-    def get_form_kwargs(self):
-        """
-        Returns a dictionary of arguments to pass into the form instantiation.
-        If resuming a pended form, this will retrieve data from the database.
-        """
-        object_pk = self.kwargs.get(self.pk_url_kwarg)
-        if 'resume' in self.request.path_info:
-            print >>sys.stderr, '*** PENDING form *** %s' 
-            import_path = self.get_import_path(self.get_form_class())
-            return { 'object_pk': object_pk, 'data': self.get_pended_data(import_path, object_pk)}
-        else:
-            print >>sys.stderr, '*** REGULAR form *** %s' 
-            
-            return super(ClientSetupView, self).get_form_kwargs()
+        
+#class ClientSetupWizardView(SingleObjectMixin, SessionWizardView):
     
-    def get(self, request, *args, **kwargs):
+class ClientSetupView(LoginRequiredMixin, SingleObjectMixin, TemplateView):
+    model = Client
+    pend_button_name = 'pend'
+    template_name = "clients/client_setup_base.html"
+    FORMS = { 
+             # section Identification
+            "id": IdentificationForm, # instance = Client
+            # section Contact
+            "contact": ContactInfoForm, # instance = ContactInfo
+            "address": AddressForm,
+            "phones" : HomePhoneFormSet,
+            # section communication
+            "comm": CommunicationForm, # instance = Client
+            # section referral
+            "ref": ReferralForm # instance = Referral
+            }
+    
+    def get_context_data(self, **kwargs):
         self.object = self.get_object()
-        return super(ClientSetupView, self).get(request, *args, **kwargs)
         
-    def post(self, request, *args, **kwargs):
-        """
-        Handles POST requests with form data. If the form was pended, it doesn't follow
-        the normal flow, but saves the values for later instead.
-        """
-        self.object = self.get_object()
+        context = super(ClientSetupView, self).get_context_data(**kwargs)
         
-        if self.pend_button_name in self.request.POST:
-            form_class = self.get_form_class()
-            form = self.get_form(form_class)
-            print >>sys.stderr, '***  form data *** %s' % form.data
-            self.form_pended(form)
-            return HttpResponseRedirect(
-                                        reverse_lazy('client_setup_resume', kwargs={'pk':str(self.object.pk)}))
-            #return self.render_to_response(
-            #                               self.get_context_data(form=form))
-        else:
-            return super(ClientSetupView, self).post(request, *args, **kwargs)
-            
-    # Custom methods follow
-
-    def get_import_path(self, form_class):
-        return '{0}.{1}'.format(form_class.__module__, form_class.__name__)
-
-#     def get_form_hash(self, form):
-#         content = ','.join('{0}:{1}'.format(n, form.data[n]) for n in form.fields.keys())
-#         return md5(content).hexdigest()
-
-    def form_pended(self, form):
-        import_path = self.get_import_path(self.get_form_class())
-        object_pk = self.get_object().pk
-        pended_form, created = PendedForm.objects.get_or_create(form_class=import_path,
-                                                   object_pk=object_pk)
-        for name in form.fields.keys():
-            print >>sys.stderr, '***  get or create pended value for *** %s' % name
-            field_value = form.data[name]
-            pended_value, value_created = pended_form.data.get_or_create(name=name, defaults={'value':field_value })
-            if not value_created:
-                print >>sys.stderr, '***  update pended value for *** %s' % name
-            
-                pended_value.value=field_value  
-                pended_value.save()      
-            else:
-                print >>sys.stderr, '***  created pended value for *** %s' % name
-        
-
+        return context 
+    
+#     def get_form_kwargs(self):
+#         """
+#         Returns a dictionary of arguments to pass into the form instantiation.
+#         If resuming a pended form, this will retrieve data from the database.
+#         """
+#         object_pk = self.kwargs.get(self.pk_url_kwarg)
+#         if 'resume' in self.request.path_info:
+#             print >>sys.stderr, '*** PENDING form *** %s' 
+#             import_path = self.get_import_path(self.get_form_class())
+#             return { 'object_pk': object_pk, 'data': self.get_pended_data(import_path, object_pk)}
+#         else:
+#             print >>sys.stderr, '*** REGULAR form *** %s' 
+#             
+#             return super(ClientSetupView, self).get_form_kwargs()
+    
     def get_pended_data(self, import_path, object_pk):
         data = PendedValue.objects.filter(form__form_class=import_path, form__object_pk=object_pk)
         return dict((d.name, d.value) for d in data)
+
+    def get_import_path(self, form_class):
+        return '{0}.{1}'.format(form_class.__module__, form_class.__name__)
+    
+    def pend_value(self, pended_form, form, prefix, field_name ):
+        field = form.fields[field_name]
+        field_value = ""
+        if isinstance(field, forms.DateField):
+            field_value = form._raw_value(field_name)
+        else:
+            # checkboxes are posted only if checked
+            if prefix+"-"+field_name in form.data.keys():
+                field_value = form.data[prefix+"-"+field_name]
+                
+        if field_value:
+            pended_value, value_created = pended_form.data.get_or_create(name=field_name, defaults={'value':field_value })
+            if not value_created:
+                print >>sys.stderr, '***  update pended value for *** %s with %s' % ( field_name, field_value )
+                
+                pended_value.value=field_value  
+                pended_value.save()      
+            else:
+                print >>sys.stderr, '***  created pended value for *** %s with %s' % ( field_name, field_value )
+        else:
+            print >>sys.stderr, '***  no value to save' 
+            
+        
+    def form_pended(self, request, form_prefix, form_class):
+        form = form_class(request.POST, prefix=form_prefix)
+        if form.has_changed():
+            print >>sys.stderr, '***  form HAS CHANGED - save pended_form %s' % form.data 
+            import_path = self.get_import_path(form_class)
+            object_pk = self.get_object().pk
+            pended_form, created = PendedForm.objects.get_or_create(form_class=import_path,
+                                                       object_pk=object_pk)
+            for name in form.fields.keys():
+                print >>sys.stderr, '***  get or create pended value for *** %s' % name
+                
+                self.pend_value(pended_form, form, form_prefix, name)
+        else:
+            print >>sys.stderr, '***  form has NOT CHANGED - skip form_pended' 
+                
+    
+    def get_form_pended(self, form_prefix, form_class):
+        data=self.get_pended_data( self.get_import_path(form_class), self.object.pk)
+        
+        if data:
+            print >>sys.stderr, '***  RETRIEVED pended data *** %s' % data
+        
+            form = form_class( prefix=form_prefix, **{ 'initial':data }) 
+        else:
+            if form_prefix == "id":
+                form = form_class( prefix=form_prefix, instance=self.object) 
+            else:
+                form = form_class( prefix=form_prefix)
+    
+        return form
+    
+    def get_form_final (self, request, form_prefix, form_class):
+        self.object = self.get_object()
+        
+        if (form_prefix == "id"):
+            form = form_class(request.POST, prefix=form_prefix, instance=self.object)
+        else:
+            form = form_class(request.POST, prefix=form_prefix)
+        
+        return form
+        
+             
+       
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        context = self.get_context_data()
+        for form_prefix in self.FORMS.keys():
+            print >>sys.stderr, '***  get form  *** %s' % form_prefix
+            form = self.get_form_pended( form_prefix, self.FORMS[form_prefix] )
+            context[form_prefix+"_form"] = form
+            
+#         data=self.get_pended_data( self.get_import_path(IdentificationForm), self.object.pk)
+#         
+#         if data:
+#             print >>sys.stderr, '***  RETRIEVED pended data *** %s' % data
+#         
+#             id_form = IdentificationForm( prefix="id", **{ 'initial':data }) 
+#         else:
+#             id_form = IdentificationForm( prefix="id", instance=self.object) 
+#         contact_form = FullContactForm( prefix="contact")
+#         comm_form = CommunicationForm(prefix="comm", instance=self.object)
+#        referral_form = ReferralForm(prefix="ref")# target instance (referral) has not been created yet
+        
+        print >>sys.stderr, '***  context  *** %s' % context
+        
+        return self.render_to_response( context )
+#             self.get_context_data(id_form=id_form,
+#                                   contact_form=contact_form,
+#                                   comm_form=comm_form,
+#                                   referral_form=referral_form))
+
+
+    
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        if self.pend_button_name in self.request.POST:
+            #form_class = Identification
+            for form_prefix in self.FORMS.keys():
+                print >>sys.stderr, '***  pend form  *** %s' % form_prefix
+                form = self.form_pended( request, form_prefix, self.FORMS[form_prefix] )
+            
+            messages.success(request, _("Your changes have been saved successfully for later use"))
+            return HttpResponseRedirect(
+                                        reverse_lazy('client_setup', kwargs={'pk':str(self.object.pk)}))
+
+        else:
+            all_forms_valid = True
+            all_forms = {}
+            for form_prefix in self.FORMS.keys():
+                print >>sys.stderr, '***  pend form  *** %s' % form_prefix
+                form = self.get_form_final( request, form_prefix, self.FORMS[form_prefix] )
+                
+                all_forms_valid = all_forms_valid and form.is_valid()
+                all_forms[form_prefix] = form
+            
+            if all_forms_valid:
+                return self.form_valid(all_forms)
+            else:
+                return self.form_invalid(all_forms)
         
         
+    def form_valid(self, all_forms):
+        id_form = all_forms['id']
+        contact_form = all_forms['contact']
+        address_form = all_forms['address']    
+        phones_form = all_forms['phones']
+        comm_form = all_forms['comm']
+        referral_form = all_forms['ref']
+        
+        self.object = id_form.save()
+        comm_form.instance = self.object
+        self.object = comm_form.save()
+        # CONTACT section contains 3 forms : 
+        # contact_form (for email address), address_form and referral_form
+        contact_info = contact_form.save(commit=False)
+        client_type = ContentType.objects.get_for_model(self.object)
+        contact_info.content_type = client_type
+        contact_info.content_object = self.object
+        contact_info.save()
+        address = address_form.save(commit=False)
+        address.contact_info = contact_info
+        address.save()
+        print >>sys.stderr, '***  form data *** %s' % contact_form.data
+            
+        phones_form.instance = contact_info
+        phones_form.save()
+        
+        referral = referral_form.save(commit=False)
+        referral.client = self.object
+        referral.save()
+        referral_form.save_m2m()
+        
+        self.object.status = Client.ACTIVE
+        self.object.save()
+        
+        return HttpResponseRedirect(self.object.get_absolute_url())
+    
+    def form_invalid(self, all_forms):
+        
+        context = self.get_context_data()
+        
+        for form_prefix in all_forms.keys():
+            context[form_prefix+"_form"] = all_forms[form_prefix]
+        
+        context['invalid_forms']=True
+        messages.error(self.request, _("Please correct errors and save again."))
+        
+        return self.render_to_response(context)
+    
+    
 class OldClientCreateView(LoginRequiredMixin, ClientActionMixin, CreateView):
     model = Client
     action = "create" # used for ClientActionMixin functionality
@@ -231,7 +387,7 @@ class OldClientCreateView(LoginRequiredMixin, ClientActionMixin, CreateView):
     
         address_form = AddressFormSet(prefix="address")
         
-        phone_form = PhoneFormSet(prefix="phones",
+        phone_form = HomePhoneFormSet(prefix="phones",
                                 initial=[
                                   {'phones-0-type': 'H',
                                    'phones-1-type': 'C',
@@ -251,7 +407,7 @@ class OldClientCreateView(LoginRequiredMixin, ClientActionMixin, CreateView):
         form_class = self.get_form_class()
         form = self.get_form(form_class)
         address_form = AddressFormSet(request.POST, prefix="address")
-        phone_form = PhoneFormSet(request.POST, prefix="phones")
+        phone_form = HomePhoneFormSet(request.POST, prefix="phones")
         
         if (form.is_valid() and address_form.is_valid() and phone_form.is_valid()):
             return self.form_valid(form, address_form, phone_form)
@@ -294,7 +450,7 @@ class ClientUpdateView(LoginRequiredMixin, ClientActionMixin, UpdateView):
         address_form = AddressFormSet(prefix="address", instance = self.object)
         
         #phones = self.object.phone_set.all()
-        phone_form = PhoneFormSet(prefix="phones", instance = self.object)
+        phone_form = HomehoneFormSet(prefix="phones", instance = self.object)
         
         return self.render_to_response(
             self.get_context_data(form=form,
@@ -309,7 +465,7 @@ class ClientUpdateView(LoginRequiredMixin, ClientActionMixin, UpdateView):
         form = self.get_form(form_class)
         
         address_form = AddressFormSet(request.POST, prefix="address", instance = self.object)
-        phone_form = PhoneFormSet(request.POST,  prefix="phones", instance = self.object)
+        phone_form = HomePhoneFormSet(request.POST,  prefix="phones", instance = self.object)
         
         if (form.is_valid() and address_form.is_valid()  and phone_form.is_valid()):
             return self.form_valid(form, address_form, phone_form)
@@ -337,9 +493,253 @@ class ClientUpdateView(LoginRequiredMixin, ClientActionMixin, UpdateView):
                                   address_form = address_form,
                                   phone_form = phone_form))
 
+class ClientProfileMixin(LoginRequiredMixin, SingleObjectMixin):
+    model = Client
+    tab = "id"
     
+    def get_context_data(self, **kwargs):
+        context = super(ClientProfileMixin, self).get_context_data(**kwargs)
+        context['tab']=self.tab
+         
+        self.object = self.get_object()
+        
+        contact_info = self.object.get_contact_info()
+        context['contact_info'] = contact_info
+        address = contact_info.get_address()
+        context['address'] = address
+        phones = contact_info.get_phones()
+        context['phones'] = phones
+        
+        return context
+
+class ClientIdentificationHeadlineMixin(SetHeadlineMixin):
+    headline=_("Client Identification")
+
+class ClientContactHeadlineMixin(SetHeadlineMixin):
+    headline=_("Contact information")
+
+class ClientCommunicationHeadlineMixin(SetHeadlineMixin):
+    headline=_("Useful information for communication")
+
+class ClientReferralHeadlineMixin(SetHeadlineMixin):
+    headline=_("Referral information")
+    
+class ClientProfileIdentificationView(ClientProfileMixin, ClientIdentificationHeadlineMixin, DetailView):
+    template_name = "clients/client_profile_identification.html"
+    tab = "id"
+    
+class ClientProfileContactView(ClientProfileMixin, ClientContactHeadlineMixin, DetailView):
+    template_name = "clients/client_profile_contact.html"
+    tab = "contact"
+    
+    
+class ClientProfileCommunicationView(ClientProfileMixin, ClientCommunicationHeadlineMixin, DetailView):
+    template_name = "clients/client_profile_communication.html"
+    tab = "comm"
+    
+class ClientProfileReferralView(ClientProfileMixin, ClientReferralHeadlineMixin, DetailView):
+    template_name = "clients/client_profile_referral.html"
+    tab = "ref"
+
+    def get_context_data(self, **kwargs):
+        context = super(ClientProfileReferralView, self).get_context_data(**kwargs)
+
+        self.object = self.get_object()
+        context['referral']=self.object.get_referral()
+        context['ref_contact']=self.object.get_referral().contact
+    
+        return context
+
+class ClientProfileEditMainView(ClientProfileMixin, FormView):
+    success_url = ''
+    form_classes = {}
+    
+#              # section Identification
+#             "id": IdentificationForm, # instance = Client
+#             # section Contact
+#             "contact": ContactInfoForm, # instance = ContactInfo
+#             "address": AddressForm,
+#             "phones" : HomePhoneFormSet,
+#             # section communication
+#             "comm": CommunicationForm, # instance = Client
+#             # section referral
+#             "ref": ReferralForm # instance = Referral
+#             }
+    
+    def get_success_url(self):
+        return reverse_lazy(self.success_url, kwargs={'pk':str(self.get_object().id)})
+    
+    def get_form_kwargs(self, prefix):
+        kwargs = super(ClientProfileEditMainView, self).get_form_kwargs()
+        kwargs.update({
+            'prefix': prefix,
+            'instance': self.get_object(),
+            'edit': True
+        })
+        if self.request.method in ('POST', 'PUT'):
+            print >>sys.stderr, '*** include post request **** %s' % self.request.POST
+            kwargs.update({
+                'data': self.request.POST,
+                'files': self.request.FILES,
+                })
+        return kwargs
+    
+    def get_form(self, form_class, prefix):
+        return form_class(**self.get_form_kwargs(prefix))
+    
+    def get_forms(self, request=None):
+        forms = {}
+        for form_prefix in self.form_classes.keys():
+            form_class = self.form_classes[form_prefix]
+            form = self.get_form(form_class, form_prefix)
+            forms[form_prefix] = form
+        
+        return forms
+            
+    def get(self, request, *args, **kwargs):
+        
+        self.object = self.get_object()
+        
+        forms = self.get_forms()
+        context = self.get_context_data()
+        
+        for form_prefix in self.form_classes.keys():
+            context[form_prefix+"_form"] = forms[form_prefix]
+            
+        
+        return self.render_to_response(context)
 
 
+        #return super(ClientProfileEditMainView, self).get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        print >>sys.stderr, '*** ENTERING POST **** %s' % request.POST
+        
+        forms = self.get_forms()
+        all_forms_valid = True
+        for form_prefix in self.form_classes.keys():
+            print >>sys.stderr, '*** process form **** %s' % form_prefix
+            form_valid = forms[form_prefix].is_valid()
+            if form_valid:
+                print >>sys.stderr, '*** VALID ****'
+            else:
+                print >>sys.stderr, '*** INVALID !!!   *** %s' % forms[form_prefix].is_bound
+
+            all_forms_valid = all_forms_valid and form_valid
+            
+        if all_forms_valid:
+            print >>sys.stderr, '*** VALID ****'
+        
+            return self.form_valid(forms)          
+        else:
+            print >>sys.stderr, '*** INVALID !!!  ****'
+        
+            return self.form_invalid(forms)
+        
+    def form_valid(self, forms):
+        
+        for form_prefix in self.form_classes.keys():
+            forms[form_prefix].save()
+        
+        return HttpResponseRedirect(self.get_success_url())
+    
+    def form_invalid(self, forms):
+        
+        context = self.get_context_data()
+        
+        for form_prefix in self.form_classes.keys():
+            context[form_prefix+"_form"] = forms[form_prefix]
+            
+        return self.render_to_response( context)
+        
+class ClientProfileEditIdentificationView(ClientIdentificationHeadlineMixin, ClientProfileEditMainView):
+    template_name = "clients/client_profile_identification_edit.html"
+    tab = "id"
+    form_classes = {
+                    "id": IdentificationForm
+                    }
+    success_url = 'client_profile_identification'
+    FORMS = {
+            "id": IdentificationForm # instance = Client
+            }
+    
+#     def get_form_kwargs(self):
+#         kwargs = super(ClientProfileEditIdentificationView, self).get_form_kwargs()
+#         kwargs.update({
+#             'edit': True
+#         })
+#         return kwargs
+        
+
+    
+class ClientProfileEditContactView(ClientContactHeadlineMixin, ClientProfileEditMainView):
+    template_name = "clients/client_profile_contact_edit.html"
+    tab = "contact"
+    form_classes = {
+                    "contact" : ContactInfoForm,
+                    "address" : AddressForm,
+                    "phones" : HomePhoneFormSet
+                    }
+    success_url = 'client_profile_contact'
+    
+    def get_form_kwargs(self, prefix):
+        kwargs = super(ClientProfileEditContactView, self).get_form_kwargs(prefix)
+        
+        contact_info = self.get_object().get_contact_info()
+        if prefix == "address":
+            form_instance = contact_info.get_address()
+        else:
+            form_instance = contact_info
+        kwargs.update({
+            'instance': form_instance
+        })
+            
+        return kwargs
+    
+    
+#     def form_valid(self, forms):
+#         self.object = self.get_object() # client
+#         contact_form = forms['contact']
+#         address_form = forms['address']
+#         phones_form = forms['phones']
+#         
+#         print >>sys.stderr, '*** form_valid contact **** %s', contact_form.instance
+#         print >>sys.stderr, '*** form_valid address_form **** %s', address_form.instance
+#         print >>sys.stderr, '*** form_valid phones_form **** %s', phones_form.instance
+#         
+#         for form_prefix in self.form_classes.keys():
+#             forms[form_prefix].save()
+#         
+#         return HttpResponseRedirect(self.get_success_url())
+
+
+class ClientProfileEditCommunicationView(ClientCommunicationHeadlineMixin, ClientProfileEditMainView):
+    template_name = "clients/client_profile_communication_edit.html"
+    tab = "comm"
+    form_classes = {
+                    "comm" : CommunicationForm
+                    }
+    success_url = 'client_profile_communication'
+    
+class ClientProfileEditReferralView(ClientReferralHeadlineMixin, ClientProfileEditMainView):
+    template_name = "clients/client_profile_referral_edit.html"
+    form_classes = {
+                    "ref" : ReferralForm
+                    }
+    tab = "ref"
+    success_url = 'client_profile_referral'
+
+    def get_form_kwargs(self, prefix):
+        kwargs = super(ClientProfileEditReferralView, self).get_form_kwargs(prefix)
+        
+        referral = self.get_object().get_referral()
+        
+        kwargs.update({
+            'instance': referral
+        })
+        return kwargs  
+    
 class ClientProfileView(LoginRequiredMixin, UpdateView):
     model = Client
     #template_name = 'clients/client_profile.html'
@@ -392,9 +792,10 @@ class ClientProfileView(LoginRequiredMixin, UpdateView):
         self.object = self.get_object()
         
         context['tab']=self.kwargs['tab']
-        address = self.object.address.all()[0]
+        contact_info = self.object.get_contact_info()
+        address = contact_info.get_address()
         context['address'] = address
-        phones = self.object.phones.all()
+        phones = contact_info.get_phones()
         context['phones'] = phones
         
         if self.kwargs['tab'] == 'ref':
@@ -423,7 +824,7 @@ class ClientProfileView(LoginRequiredMixin, UpdateView):
         form_class = self.get_form_class()
         form = self.get_form(form_class)
         if self.kwargs['tab'] == "comm":
-            phone_form = PhoneFormSet(prefix="phones", instance = self.object)
+            phone_form = HomePhoneFormSet(prefix="phones", instance = self.object)
             phone_form_helper = PhoneFormSetHelper()
         else:
             phone_form = None
@@ -431,7 +832,7 @@ class ClientProfileView(LoginRequiredMixin, UpdateView):
         
         if self.kwargs['tab'] == "ref":
             contact_form = ContactCreateForm(prefix="contact")
-            contact_phone_form = PhoneFormSet(prefix="phones") #, instance = self.object.referral_set.latest(field_name='ref_date').contact)
+            contact_phone_form = HomePhoneFormSet(prefix="phones") #, instance = self.object.referral_set.latest(field_name='ref_date').contact)
             contact_phone_form_helper = PhoneFormSetHelper()
         else:
             contact_form = None
@@ -459,7 +860,7 @@ class ClientProfileView(LoginRequiredMixin, UpdateView):
         form = self.get_form(form_class)
         #inline_forms = {}
         if self.kwargs['tab'] == "comm":
-            phone_form = PhoneFormSet(request.POST,  prefix="phones", instance = self.object)
+            phone_form = HomePhoneFormSet(request.POST,  prefix="phones", instance = self.object)
         else:
             phone_form = None
             
@@ -592,7 +993,7 @@ class ClientReferralView(LoginRequiredMixin, UpdateView):
         form = self.get_form(form_class)
         
         contact_form = ContactCreateForm(prefix="contact")
-        contact_phone_form = PhoneFormSet(prefix="phones") 
+        contact_phone_form = HomePhoneFormSet(prefix="phones") 
         contact_phone_form_helper = PhoneFormSetHelper()
         
         print >>sys.stderr, '*** GET - render to response  ****' 
@@ -617,7 +1018,7 @@ class ClientReferralView(LoginRequiredMixin, UpdateView):
         referral = self.get_context_data()['referral']
         
         contact_form = ContactCreateForm(request.POST, prefix="contact", instance=referral)
-        contact_phone_form = PhoneFormSet(request.POST, prefix="phones", instance=referral.contact) #, instance = self.object.referral_set.latest(field_name='ref_date').contact)
+        contact_phone_form = HomePhoneFormSet(request.POST, prefix="phones", instance=referral.contact) #, instance = self.object.referral_set.latest(field_name='ref_date').contact)
         
         forms_valid = form.is_valid()
         if forms_valid:

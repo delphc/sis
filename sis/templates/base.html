@@ -17,8 +17,17 @@
     <!-- Latest compiled and minified CSS -->
     <!--<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">-->
 	<link href="{% static 'plugins/bootstrap/bootstrap.css' %}" rel="stylesheet">
-	<link href="{% static 'css/font-awesome.css' %}" rel="stylesheet">
-	
+	<link href="{% static 'css/magic-bootstrap.css' %}" rel="stylesheet">
+    <link href="{% static 'css/font-awesome.css' %}" rel="stylesheet">
+    <!-- Bootstrap Form Helpers -->
+	<link href="{% static 'plugins/bfh/css/bootstrap-formhelpers.min.css' %}" rel="stylesheet" media="screen">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.js"></script>
+      <script src="js/respond.min.js"></script>
+    <![endif]-->
+    
     <!-- Optional theme -->
     <!--<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">-->
 
@@ -200,9 +209,10 @@
 	<!-- Latest compiled and minified JavaScript -->
 	<!--<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>-->
 	<script src="{% static 'plugins/bootstrap/bootstrap.min.js' %}"></script>
-	
+
 	<!-- Your stuff: Third-party javascript libraries go here -->
-	
+	<!-- Bootstrap Form Helpers -->
+    <script src="{% static 'plugins/bfh/js/bootstrap-formhelpers.js' %}"></script>
 	<!-- place project specific Javascript in this file -->
 	<script src="{% static 'js/project.js' %}"></script>
   	{% endblock javascript %}

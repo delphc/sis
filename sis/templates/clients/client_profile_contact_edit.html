@@ -1,0 +1,63 @@
+{% extends 'clients/base_profile.html' %}
+
+{% load staticfiles %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+
+
+{% block tab-content %}
+<div id="tab-ident" class="tab-pane active">
+<h4><span>{{ headline }}</h4>
+</p>
+
+<form method="post" class="form-horizontal" action="{% url 'client_profile_contact_edit' pk=object.id %}"> 
+{% csrf_token %}
+{% if contact_form.errors or address_form.errors or phones_form.errors %}
+    <p class="text-danger"><strong>{% trans 'Please correct these errors and save again.' %}</strong></p>
+{% endif %}
+                        
+{% crispy address_form %}
+<div  class="form-group">
+    {{ phones_form.management_form }}
+    <label class="control-label col-xs-3">{% trans "Phones" %}</label>
+    <div class="controls col-xs-9">
+        <div class="container-fluid">
+    {% for form in phones_form %}
+        {% crispy form %}
+    {% endfor %}
+    </div>
+    </div>
+</div>
+{% crispy contact_form %}
+
+<div class="form-actions pull-right"><!-- col-xs-6 col-xs-offset-3 -->
+    <input type="submit" name="save" value="Save changes" class="btn btn-primary" id="submit-id-save" />
+    <a class="btn btn-default" href="{% url 'client_profile_contact' pk=object.id %}">Cancel</a>
+</div>
+</form>
+</div>
+{% endblock tab-content %}
+
+{% block javascript_extra %}
+
+<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
+<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
+
+<script>
+
+$(document).ready(function() {
+     
+    
+   $(".phone_row").formset({
+            prefix: '{{ phones_form.prefix }}',
+            addText: '<i class="fa fa-plus-circle"></i> {% trans "Add phone" %}',
+            deleteText: '<i class="fa fa-remove"> {% trans "Remove phone" %}'
+        });
+   
+   
+});
+
+</script>
+{% endblock javascript_extra %}

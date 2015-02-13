@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+import autocomplete_light
 from django.conf.urls import patterns, url
 
 from contacts.views import ContactListView,  ContactCreateView, ContactUpdateView
 from contacts.views import OrganizationListView, OrganizationCreateView, OrganizationUpdateView, TestCreateView
+
+from contacts.forms import ContactForm
+
+from contacts.models import Contact
 
 urlpatterns = patterns('contacts.views',
     url(
@@ -40,5 +45,8 @@ urlpatterns = patterns('contacts.views',
         view=OrganizationUpdateView.as_view(),
         name='org_update'
     ),
+    url(r'$', autocomplete_light.CreateView.as_view(
+        model=Contact, form_class=ContactForm),
+        name='add_another_contact_create'),
 
 )

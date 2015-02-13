@@ -9,13 +9,11 @@
 {% block tab-content %}
 <div id="tab-comm" class="tab-pane active">
 	    				
-<form method="post" action="{% url 'client_profile_referral' pk=object.id %}"> 
-	{% csrf_token %}
-<p class="row"><span>{% trans 'Referral information' %}</span>
+<h4><span>{% trans 'Referral information' %}</span>
 	<a class="btn btn-primary pull-right" href="#" id="show-form-lines">
 		<i class="fa fa-edit"></i>
 		Edit</a>
-</p>
+</h4>
 <div class="row form-line pull-right">
 	<button type="cancel" name="cancel" class="btn btn-secondary" id="cancel-form">Cancel</button>
 	<input type="submit" name="form-submit" value="Save changes" class="btn btn-primary" id="submit-form">

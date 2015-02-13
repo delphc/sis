@@ -4,14 +4,16 @@ from datetime import date
 
 from django.db import models
 from django.contrib.contenttypes.generic import GenericRelation
+from django.conf import settings
 from django.core.urlresolvers import reverse_lazy
 from django_extensions.db.models import TimeStampedModel
+from django.utils import translation
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import pgettext_lazy
 
 from auditlog.registry import auditlog
 from auditlog.models import AuditlogHistoryField
-from diplomat.fields import LanguageChoiceField
+from diplomat.models import ISOLanguage
 
 from contacts.models import Address, ContactEntity, Contact, ContactInfo, SocialWorker
 from users.models import User
@@ -20,10 +22,26 @@ from users.models import User
 # Contact informations
 
 class ReferralReason(models.Model):
+    AUTONOMY_LOSS = "AL"
+    SOCIAL_ISOLATION = "SI"
+    FOOD_INSECURITY = "FI"
+    REF_CATEGORY = (
+        (AUTONOMY_LOSS, _('Loss of Autonomy')),
+        (SOCIAL_ISOLATION, _('Social isolation')),
+        (FOOD_INSECURITY, _('Food insecurity')),
+    )
+    category = models.CharField(max_length=3, choices=REF_CATEGORY, default=AUTONOMY_LOSS)
     reason_fr = models.CharField(max_length=100)
     reason_en = models.CharField(max_length=100)
     
-    
+    def __unicode__(self):
+        lg = translation.get_language()
+        
+        if lg == "en":
+            return self.reason_en + "/" + self.category
+        else:
+            return self.reason_fr 
+        
 class Client(ContactEntity):
         
     FEMALE='F'
@@ -70,8 +88,7 @@ class Client(ContactEntity):
         (BOTH, _('English/French')),
     )
     #Native language
-    #native_lang = LanguageChoiceField()
-    native_lang =  models.CharField(_('Native language'),max_length=2, choices=LANGUAGE_CODES)
+    native_lang = models.ForeignKey(ISOLanguage, default=settings.DEFAULT_CLIENT_NATIVE_LANGUAGE)
     #Preferred language for communication
     com_lang = models.CharField(_('Language for communication'),max_length=2, choices=LANGUAGE_CODES)
     # ** Behavioral issues impacting communication**
@@ -80,7 +97,7 @@ class Client(ContactEntity):
     #Hard of hearing
     cdif_hoh = models.BooleanField(_('Hard of hearing'), default=False)
     # Analphabete
-    cdif_anl = models.BooleanField(_('Analphabete'), default=False)
+    cdif_anl = models.BooleanField(_('Illiterate'), default=False)
     # Cognitive loss
     cdif_cog = models.BooleanField(_('Cognitive loss'), default=False)
     
@@ -102,9 +119,9 @@ class Client(ContactEntity):
     
     def get_absolute_url(self):
         if self.status == self.PENDING:
-            return reverse_lazy('client_setup_resume', kwargs={'pk':str(self.id)})
+            return reverse_lazy('client_setup', kwargs={'pk':str(self.id)})
         else:
-            return reverse_lazy('client_profile', kwargs={'tab': 'id', 'pk':str(self.id)})
+            return reverse_lazy('client_profile_identification', kwargs={'pk':str(self.id)})
 
     def get_gender_icon(self):
         if self.gender == self.MALE:
@@ -152,9 +169,9 @@ class Client(ContactEntity):
 class Referral(models.Model):
     client = models.ForeignKey(Client)
     contact = models.ForeignKey(Contact)
-    ref_date = models.DateField()
-    reasons = models.ManyToManyField(ReferralReason)
-    notes = models.TextField(max_length=250, blank=True, default='')
+    ref_date = models.DateField(_("Referral date"))
+    reasons = models.ManyToManyField( ReferralReason, _("Reasons for referral"))
+    notes = models.TextField(_("Referral notes"), max_length=250, blank=True, default='')
 
 class RelationType(models.Model):
     

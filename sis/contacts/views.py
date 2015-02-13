@@ -18,10 +18,11 @@ from django.views.generic import CreateView, UpdateView, DetailView, ListView, T
 from braces.views import LoginRequiredMixin
 from datatableview.views import DatatableView
 from datatableview.helpers import link_to_model
+    
 from auditlog.models import LogEntry
 #from cbvtoolkit.views import MultiFormView
 
-from .forms import ContactForm, ContactInfoForm, OrganizationForm, OrganizationMemberForm, AddressFormSet, AddressFormSetHelper, PhoneFormSet, PhoneFormSetHelper
+from .forms import ContactForm, ContactInfoForm, OrganizationForm, OrganizationMemberForm, OrganizationMemberFormSet, AddressFormSet, AddressFormSetHelper, WorkPhoneFormSet, PhoneFormSetHelper
 
 # Import the customized User model
 from .models import Address, Phone, Contact, Organization
@@ -101,10 +102,10 @@ class ContactCreateView(LoginRequiredMixin, ContactActionMixin, CreateView):
         form.initial = { 'contact_type' : 'N'}
         
         contact_form = ContactInfoForm(prefix="contact_info")
-        org_form = OrganizationMemberForm(prefix="sw")
+        org_form = OrganizationMemberFormSet(prefix="sw")
         address_form = AddressFormSet(prefix="address")
         address_form_helper = AddressFormSetHelper()
-        phone_form = PhoneFormSet(prefix="phones")
+        phone_form = WorkPhoneFormSet(prefix="phones")
         # TODO: initial does not work - commented out for now
 #                                 ,initial=[
 #                                   {'phones-0-type': 'H',
@@ -128,9 +129,9 @@ class ContactCreateView(LoginRequiredMixin, ContactActionMixin, CreateView):
         form_class = self.get_form_class()
         form = self.get_form(form_class)
         contact_form = ContactInfoForm(request.POST, prefix="contact_info")
-        org_form = OrganizationMemberForm(request.POST, prefix="sw")
+        org_form = OrganizationMemberFormSet(request.POST, prefix="sw")
         address_form = AddressFormSet(request.POST, prefix="address")
-        phone_form = PhoneFormSet(request.POST, prefix="phones")
+        phone_form = WorkPhoneFormSet(request.POST, prefix="phones")
         
         print >>sys.stderr, '*** form data *** %s' % form.data
         forms_valid = form.is_valid() and contact_form.is_valid()
@@ -220,11 +221,11 @@ class ContactUpdateView(LoginRequiredMixin, ContactActionMixin, UpdateView):
         contact_info = self.object.get_contact_info()
         contact_form = ContactInfoForm(prefix="contact_info", instance=contact_info)
         
-        org_form = OrganizationMemberForm(prefix="sw", instance=self.object.get_organization())
+        org_form = OrganizationMemberFormSet(prefix="sw", instance=self.object.get_organization())
         
         address_form = AddressFormSet(prefix="address", instance=contact_info)
         address_form_helper = AddressFormSetHelper()
-        phone_form = PhoneFormSet(prefix="phones", instance=contact_info)
+        phone_form = WorkPhoneFormSet(prefix="phones", instance=contact_info)
         phone_form_helper = PhoneFormSetHelper()
          
         return self.render_to_response(
@@ -241,12 +242,12 @@ class ContactUpdateView(LoginRequiredMixin, ContactActionMixin, UpdateView):
         form = self.get_form(form_class)
         form.use_for_update()
         
-        org_form = OrganizationMemberForm(request.POST, prefix="sw", instance=self.object.get_organization())
+        org_form = OrganizationMemberFormSet(request.POST, prefix="sw", instance=self.object.get_organization())
         
         contact_info = self.object.get_contact_info()
         contact_form = ContactInfoForm(request.POST, prefix="contact_info", instance=contact_info)
         address_form = AddressFormSet(request.POST, prefix="address", instance=contact_info)
-        phone_form = PhoneFormSet(request.POST, prefix="phones", instance=contact_info)
+        phone_form = WorkPhoneFormSet(request.POST, prefix="phones", instance=contact_info)
         
         print >>sys.stderr, '*** form data *** %s' % form.data
         
@@ -319,9 +320,13 @@ class ContactUpdateView(LoginRequiredMixin, ContactActionMixin, UpdateView):
         
         if org_form.has_changed():
             print >>sys.stderr, '*** save org_form ***' 
-            org = org_form.save(commit=False)
-            org.save()
-        
+            org_instances = org_form.save(commit=False)
+            for org in org_instances:
+                org.save()
+            
+            for old_org in org_form.deleted_objects:
+                old_org.deactivate()
+                old_org.save()
          
         return HttpResponseRedirect(self.get_success_url())
      
@@ -373,7 +378,7 @@ class OrganizationCreateView(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
         
         contact_form = ContactInfoForm(prefix="org_contact_info")
         address_form = AddressFormSet(prefix="org_address")
-        phone_form = PhoneFormSet(prefix="org_phones")
+        phone_form = WorkPhoneFormSet(prefix="org_phones")
         
         return self.render_to_response(
             self.get_context_data(org_form=form,
@@ -389,7 +394,7 @@ class OrganizationCreateView(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
         
         contact_form = ContactInfoForm(request.POST, prefix="org_contact_info")
         address_form = AddressFormSet(request.POST, prefix="org_address")
-        phone_form = PhoneFormSet(request.POST, prefix="org_phones")
+        phone_form = WorkPhoneFormSet(request.POST, prefix="org_phones")
         
         print >>sys.stderr, '*** form data *** %s' % form.data
         forms_valid = form.is_valid() and contact_form.is_valid()
@@ -466,7 +471,7 @@ class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
         
         address_form = AddressFormSet(prefix="address", instance=contact_info)
         address_form_helper = AddressFormSetHelper()
-        phone_form = PhoneFormSet(prefix="phones", instance=contact_info)
+        phone_form = WorkPhoneFormSet(prefix="phones", instance=contact_info)
         phone_form_helper = PhoneFormSetHelper()
          
         return self.render_to_response(
@@ -484,7 +489,7 @@ class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
         contact_info = self.object.get_contact_info()
         contact_form = ContactInfoForm(request.POST, prefix="contact_info", instance=contact_info)
         address_form = AddressFormSet(request.POST, prefix="address", instance=contact_info)
-        phone_form = PhoneFormSet(request.POST, prefix="phones", instance=contact_info)
+        phone_form = WorkPhoneFormSet(request.POST, prefix="phones", instance=contact_info)
         
         print >>sys.stderr, '*** form data *** %s' % form.data
         

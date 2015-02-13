@@ -7,9 +7,11 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.generic import GenericRelation
 from django.core.urlresolvers import reverse_lazy
-from django_extensions.db.models import TimeStampedModel
+from django_extensions.db.models import TimeStampedModel, ActivatorModel
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import pgettext_lazy
+from django.utils import translation
+
 
 from auditlog.registry import auditlog
 from auditlog.models import AuditlogHistoryField
@@ -21,6 +23,12 @@ class ContactEntity(TimeStampedModel):
     class Meta:
         abstract = True
 
+    def get_contact_info(self):
+        if self.contact_info.count():
+            return self.contact_info.all()[0]
+        else:
+            return None
+    
 class ContactInfo(models.Model):
     
     limit = models.Q(app_label = 'contacts', model = 'ContactEntity') # | models.Q(app_label = 'contacts', model = 'Organization') | models.Q(app_label = 'clients', model = 'Client')
@@ -30,10 +38,17 @@ class ContactInfo(models.Model):
     content_object = GenericForeignKey()
      
     #owner = models.OneToOneField(ContactEntity)
-    email_address = models.EmailField(blank=True)
+    email_address = models.EmailField(blank=True, default='')
 
-
-
+    def __unicode__(self):
+        return self.email_address
+    
+    def get_address(self):
+        return self.address_set.all()[0]
+    
+    def get_phones(self):
+        return self.phone_set.all()
+        
 class Address(models.Model):
     history = AuditlogHistoryField()
     
@@ -46,8 +61,8 @@ class Address(models.Model):
     contact_info = models.ForeignKey(ContactInfo)
     
     street = models.CharField(max_length=250, default='', verbose_name=_('Street name & number'))
-    apt = models.CharField(max_length=10, default='', verbose_name=_('Apt. #'))
-    entry_code = models.CharField(max_length=5, default='', verbose_name=_('Entry code'))
+    apt = models.CharField(max_length=10, blank=True, default='', verbose_name=_('Apt. #'))
+    entry_code = models.CharField(max_length=5, blank=True, default='', verbose_name=_('Entry code'))
     zip_code = models.CharField(max_length=7)
     city = models.CharField(max_length=50, default=_('Montreal'))
     prov = models.CharField(max_length=30, default=_('Qc'))
@@ -126,7 +141,7 @@ class Contact(ContactEntity):
 
     CONTACT_TYPE_CODES= (
         (NEXT_OF_KIN, _('Next of kin')),
-        (SOCIAL_WORKER, _('Social worker')),
+        (SOCIAL_WORKER, _('Reference')),
         )
     contact_type = models.CharField(max_length=1, choices=CONTACT_TYPE_CODES, default=NEXT_OF_KIN)
     
@@ -154,8 +169,9 @@ class Contact(ContactEntity):
         if (self.contact_type == self.NEXT_OF_KIN):
             return None
         else:
-            return self.organizationmember_set.latest(field_name='start_date')
+            return self.organizationmember_set.latest(field_name='activate_date')
 
+    
 
 class NextOfKin(Contact):
     class Meta:
@@ -174,14 +190,28 @@ class SocialWorker(Contact):
     #phones mandatory - min 1 max 3
     #adress mandatory - min 1 max 1
     #work optional
+
+class Position(models.Model):
     
-class OrganizationMember(models.Model):
+    desc_en = models.CharField(max_length=30)
+    desc_fr = models.CharField(max_length=30)
+
+    def __unicode__(self):
+        lg = translation.get_language()
+        
+        if lg == "en":
+            return self.desc_en
+        else:
+            return self.desc_fr 
+        
+class OrganizationMember(ActivatorModel):
     organization = models.ForeignKey(Organization)
     social_worker = models.ForeignKey(Contact)
-    start_date = models.DateField()
-    end_date = models.DateField(blank=True, null=True)
-    position = models.CharField(max_length=20)
+    position = models.ForeignKey(Position)
     
+    def deactivate(self):
+        self.deactivate_date(datetime.now())
+        self.status = ActivatorModel.INACTIVE_STATUS
     
 auditlog.register(NextOfKin)
 

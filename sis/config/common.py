@@ -14,7 +14,8 @@ import os
 from os.path import join, dirname
 
 from configurations import Configuration, values
-
+from django.contrib.messages import constants as message_constants
+    
 BASE_DIR = dirname(dirname(__file__))
 
 
@@ -25,6 +26,7 @@ class Common(Configuration):
         # Default Django apps:
         'django.contrib.auth',
         'django.contrib.contenttypes',
+        'django.contrib.formtools',
         'django.contrib.sessions',
         'django.contrib.sites',
         'django.contrib.messages',
@@ -48,6 +50,7 @@ class Common(Configuration):
         'diplomat',
         'datatableview',    
         'cbvtoolkit',
+        'selectable',
     )
 
     # Apps specific for this project go here.
@@ -302,3 +305,13 @@ class Common(Configuration):
     # END LOGGING CONFIGURATION
 
     # Your common stuff: Below this line define 3rd party library settings
+    # override messages tags to make it work with bootstrap
+    MESSAGE_TAGS = {message_constants.DEBUG: 'debug',
+                message_constants.INFO: 'info',
+                message_constants.SUCCESS: 'success',
+                message_constants.WARNING: 'warning',
+                message_constants.ERROR: 'danger',} # instead of default 'error'
+    
+    DEFAULT_CLIENT_NATIVE_LANGUAGE = 123 # id of ISOLanguage for english
+    
+    

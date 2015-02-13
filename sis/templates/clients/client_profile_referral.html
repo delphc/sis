@@ -1,0 +1,67 @@
+{% extends 'clients/base_profile.html' %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+
+{% load crispy_forms_tags %}
+{% load verbose_names %}
+{% load core_filters %}
+
+{% block tab-content %}
+<div id="tab-comm" class="tab-pane active">
+	    				
+<h4><span>{{ headline }}</span>
+	<a class="btn btn-primary pull-right" href="{% url 'client_profile_referral_edit' pk=object.id %}">
+		<i class="fa fa-edit"></i>
+		Edit</a>
+</h4>
+
+<table class="table table-user-information">
+<tbody>
+  <tr>
+    <td>{% trans 'Date of referral' %}</td>
+    <td>{{ referral.ref_date }}
+	</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Reason for referral' %}</td>
+    <td>{% for reason in referral.reasons.all %}
+   		{% if LANGUAGE_CODE == 'en' %}{{ reason.reason_en }}
+   		{% else %}{{ reason.reason_fr }}
+   		{% endif %}
+   		<br>
+		{% empty %}
+    	{% trans 'No reason defined yet' %}
+		{% endfor %}
+	</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Referral Notes' %}</td>
+    <td>{{ referral.notes|linebreaks }}
+	</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Referring Contact' %}</td>
+    <td><p>{{ ref_contact.get_full_name|linebreaks }}
+    	{% if ref_contact.get_organization %} 
+    	   {{ ref_contact.get_organization.position }} - {{ ref_contact.get_organization.organization }} 
+    	{% endif %}
+    	<br>
+    	{% for phone in ref_contact.get_contact_info.get_phones.all %}
+    	<div class="phone">
+			<i class="fa fa-phone"></i>
+			<span>{{ phone.type }}: {{ phone.number }}</span>
+		</div>
+		{% endfor %}
+		</p>
+	</td>
+  </tr>
+  
+</tbody>
+</table>
+</form>
+</div>
+{% endblock tab-content %}
+{% block javascript_extra_tab %}
+
+    
+{% endblock javascript_extra_tab %}

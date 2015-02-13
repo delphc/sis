@@ -1,0 +1,52 @@
+{% load crispy_forms_filters %}
+{% load l10n %}
+{% load i18n %}
+
+
+<div class="form-group"> 
+    <label class="control-label col-lg-3">Reasons</label>
+    <div class="controls {{ field_class }}"{% if flat_attrs %} {{ flat_attrs|safe }}{% endif %}>
+        <div class="container-fluid">
+            <div class="row">
+            {% include 'bootstrap3/layout/field_errors_block.html' %}
+            <div class="col-sm-12" style="padding-bottom: 20px">
+                <span><strong>{% trans 'Autonomy Loss' %}</strong></span>
+                <div style="padding-left:20px">
+            {% for choice in field.field.autonomyloss %}
+            <div class="checkbox">
+                <label class="{% if inline_class %}-{{ inline_class }}{% endif %}">
+                    <input type="checkbox"{% if choice.0 in field.value or choice.0|stringformat:"s" in field.value or choice.0|stringformat:"s" == field.value|stringformat:"s" %} checked="checked"{% endif %} name="{{ field.html_name }}" id="id_{{ field.html_name }}_{{ forloop.counter }}" value="{{ choice.0|unlocalize }}" {{ field.field.widget.attrs|flatatt }}>{{ choice.1|unlocalize }}                    
+                </label>
+            </div>
+            {% endfor %}
+            </div>
+            </div>
+            <div class="col-sm-12" style="padding-bottom: 20px">
+            <span><strong>{% trans 'Social Isolation' %}</strong></span>
+            <div style="padding-left:20px">
+            {% for choice in field.field.socialisolation %}
+            <div class="checkbox">
+                <label class="checkbox{% if inline_class %}-{{ inline_class }}{% endif %}">
+                    <input type="checkbox"{% if choice.0 in field.value or choice.0|stringformat:"s" in field.value or choice.0|stringformat:"s" == field.value|stringformat:"s" %} checked="checked"{% endif %} name="{{ field.html_name }}" id="id_{{ field.html_name }}_{{ forloop.counter }}" value="{{ choice.0|unlocalize }}" {{ field.field.widget.attrs|flatatt }}>{{ choice.1|unlocalize }}                    
+                </label>
+            </div>
+            {% endfor %}
+            </div>
+            </div>
+            <div class="col-sm-12" style="padding-bottom: 20px">
+            <span><strong>{% trans 'Food Insecurity' %}</strong></span>
+            <div style="padding-left:20px">
+            {% for choice in field.field.foodinsecurity %}
+            <div class="checkbox">
+                <label class="checkbox{% if inline_class %}-{{ inline_class }}{% endif %}">
+                    <input type="checkbox"{% if choice.0 in field.value or choice.0|stringformat:"s" in field.value or choice.0|stringformat:"s" == field.value|stringformat:"s" %} checked="checked"{% endif %} name="{{ field.html_name }}" id="id_{{ field.html_name }}_{{ forloop.counter }}" value="{{ choice.0|unlocalize }}" {{ field.field.widget.attrs|flatatt }}>{{ choice.1|unlocalize }}                    
+                </label>
+            </div>
+            {% endfor %}
+            </div>
+            </div>
+            {% include 'bootstrap3/layout/help_text.html' %}
+            </div>
+        </div>
+    </div>
+</div>

@@ -22,7 +22,7 @@
 	    		<div>
 	    			
 	    		<i class="fa {{ object.get_gender_icon }}" title="{{ object.get_gender_display }}"></i>
-	    		<span>{{ object.get_com_lang_display }} ({% trans 'Native' %}: {{ object.get_native_lang_display }})</span>
+	    		<span>{{ object.get_com_lang_display }} ({% trans 'Native' %}: {{ object.native_lang }})</span>
 	    		</div>
 	    		
 				<div class="address">
@@ -33,8 +33,9 @@
 						{{ address.get_line_3 }}<br/>
 					</address>	
 				</div>
-				
-				
+				{% if not object.direct_contact %}
+				    <label class="label-danger">Do not contact directly</label>
+				{% endif %}
 				{% for phone in phones %}
 				<div class="phone">
 					<i class="fa fa-phone"></i>
@@ -51,7 +52,6 @@
 		<div class="row">
 	    		
 			<div class="tab-content col-xs-12 col-sm-9 vertical-tab-container">
-				
 				{% block tab-content %}
 				{% endblock tab-content %}
 				
@@ -60,18 +60,22 @@
 				<ul class="nav nav-tabs nav-stacked pull-right">
 					
 					<li class="tab-pane {% if tab == 'id' %} active {% endif %}">
-						<a href="{% url 'client_profile' tab='id' pk=object.id %}" >{% trans 'Identification' %}</a>
+						<a href="{% url 'client_profile_identification' pk=object.id %}" >{% trans 'Identification' %}</a>
+					</li>
+					<li class="tab-pane {% if tab == 'contact' %} active {% endif %}">
+						<a href="{% url 'client_profile_contact' pk=object.id %}" >{% trans 'Contact' %}</a>
 					</li>
 					<li class="tab-pane {% if tab == 'comm' %} active {% endif %}">
-						<a href="{% url 'client_profile' tab='comm' pk=object.id %}" >{% trans 'Communication' %}</a>
-					</li>
+                        <a href="{% url 'client_profile_communication' pk=object.id %}" >{% trans 'Communication' %}</a>
+                    </li>
 					<li class="tab-pane {% if tab == 'ref' %} active {% endif %}">
 						<a href="{% url 'client_profile_referral' pk=object.id %}" >{% trans 'Referral' %}</a>
 					</li>
+					{% comment %}
 					<li class="tab-pane {% if tab == 'order' %} active {% endif %}">
 						<a href="{% url 'client_profile_order' pk=object.id %}" >{% trans 'Command' %}</a>
 					</li>
-					<!--
+					
 					<li class="tab-pane">
 						<a href="{% url 'client_profile' tab='meal' pk=object.id %}" >{% trans 'Meal' %}</a>
 					</li>
@@ -87,7 +91,7 @@
 					<li class="tab-pane">
 						<a href="{% url 'client_profile' tab='hist' pk=object.id %}" >{% trans 'History' %}</a>
 					</li>
-					-->
+					{% endcomment%}
 				</ul>
 			</div>
 		</div>

@@ -1,0 +1,63 @@
+{% extends 'clients/base_profile.html' %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+{% load verbose_names %}
+
+{% block tab-content %}
+<div id="tab-comm" class="tab-pane active">
+<h4><span>{{ headline }}</span>
+	<a class="btn btn-primary pull-right" href="{% url 'client_profile_communication_edit' pk=object.id %}">
+		<i class="fa fa-edit"></i>
+		Edit</a>
+</h4>
+<table class="table table-user-information">
+<tbody>
+  <tr>
+    <td>{% trans 'Language of correspondance' %}</td>
+    <td>{{ object.get_com_lang_display }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Native language' %}</td>
+    <td>{{ object.native_lang }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Possible to contact client directly ?' %}</td>
+    <td>{% if object.direct_contact %}<i class="fa fa-check-square-o"></i>{% trans 'Yes' %}
+    	{% else %}<i class="fa fa-square-o"></i>{% trans 'No (please look at Contacts tab)'%}
+    	{% endif %}
+    </td>
+  </tr>
+  <tr>
+    <td>{% trans 'Difficulties of correspondence' %}</td>
+    
+    <td><ul class="list-unstyled">
+    	<li>{% if object.cdif_exd %}<i class="fa fa-check-square-o"></i>
+    		{% else %}<i class="fa fa-square-o"></i>
+    		{% endif %}
+    		{% get_verbose_field_name object "cdif_exd" %}
+    	</li>
+    	<li>{% if object.cdif_hoh %}<i class="fa fa-check-square-o"></i>
+    		{% else %}<i class="fa fa-square-o"></i>
+    		{% endif %}
+    		{% get_verbose_field_name object "cdif_hoh" %}
+    	</li>
+    	<li>{% if object.cdif_anl %}<i class="fa fa-check-square-o"></i>
+    		{% else %}<i class="fa fa-square-o"></i>
+    		{% endif %}
+    		{% get_verbose_field_name object "cdif_anl" %}
+    	</li>
+    	<li>{% if object.cdif_cog %}<i class="fa fa-check-square-o"></i>
+    		{% else %}<i class="fa fa-square-o"></i>
+    		{% endif %}
+    		{% get_verbose_field_name object "cdif_cog" %}
+    	</li>
+    	</ul>
+    </td>
+   
+  </tr>
+  
+</tbody>
+</table>
+</div>
+{% endblock tab-content %}

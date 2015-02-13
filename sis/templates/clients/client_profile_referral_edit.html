@@ -1,0 +1,17 @@
+{% extends 'clients/base_profile.html' %}
+
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+
+
+{% block tab-content %}
+<div id="tab-ident" class="tab-pane active">
+<h4><span>{{ headline }}</h4>
+</p>
+
+{% crispy ref_form %}
+
+</div>
+{% endblock tab-content %}

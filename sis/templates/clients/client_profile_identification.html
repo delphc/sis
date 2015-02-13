@@ -1,0 +1,50 @@
+{% extends 'clients/base_profile.html' %}
+
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+
+
+{% block tab-content %}
+<div id="tab-ident" class="tab-pane active">
+<h4><span>{{ headline }}</span>
+    <a class="btn btn-primary pull-right" href="{% url 'client_profile_identification_edit' pk=object.id %}">
+        <i class="fa fa-edit"></i>
+        Edit</a>
+</h4>
+
+<table class="table table-user-information">
+<tbody>
+  <tr>
+    <td>{% trans 'Name' %}</td>
+    <td>{{ object.first_name }} {{ object.middle_name }} {{ object.last_name }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Gender' %}</td>
+    <td>{{ object.get_gender_display }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Maiden Name' %}</td>
+    <td>{{ object.maiden_name }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Birth date' %}</td>
+    <td>{{ object.birth_date }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Status' %}</td>
+    <td>{{ object.get_status_display }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Added on' %}</td>
+    <td>{{ object.created }}</td>
+  </tr>
+  <tr>
+    <td>{% trans 'Last modified on' %}</td>
+    <td>{{ object.modified }}</td>
+  </tr>
+</tbody>
+</table>
+</div>
+{% endblock tab-content %}

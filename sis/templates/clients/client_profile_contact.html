@@ -1,0 +1,47 @@
+{% extends 'clients/base_profile.html' %}
+
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+
+
+{% block tab-content %}
+<div id="tab-ident" class="tab-pane active">
+    <h4><span>{{ headline }}</span>
+        <a class="btn btn-primary pull-right" href="{% url 'client_profile_contact_edit' pk=object.id %}">
+            <i class="fa fa-edit"></i>
+            Edit
+        </a>
+    </h4>
+
+    <table class="table table-user-information">
+    <tbody>
+      
+      <tr>
+        <td>{% trans 'Address' %}</td>
+        <td>{{ address.get_line_1 }}<br/>
+            {{ address.get_line_2 }}<br/>
+            {{ address.get_line_3 }}<br/>
+        </td>
+      </tr>
+      <tr >
+        <td >{% trans 'Phone' %}</td>
+        
+        <td ><ul class="list-unstyled">
+            {% for phone in phones %}
+                <li>{{ phone.get_type_display }}: {{ phone.number}} {% if phone.info %}({{ phone.info}}){% endif %}</li> 
+            {% endfor %}
+        </ul>   
+        </td>
+      </tr>
+      <tr>
+        <td>{% trans 'Email address' %}</td>
+        <td>{{ contact_info.email_address }}</td>
+      </tr>
+    </tbody>
+    </table>
+    
+    
+</div>
+{% endblock tab-content %}

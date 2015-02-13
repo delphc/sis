@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block css_extra %}
+<link rel="stylesheet" type="text/css" href="{% static 'plugins/jquery-dateentry/jquery.dateentry.css' %}"> 
+{% endblock css_extra %}
+
+{% block breadcrumb %}
+	<li><a href="#">Clients</a></li>
+	<li><a href="#">Setup</a></li>	       				
+{% endblock breadcrumb %}
+{% block content %}	      			  
+
+
+	<h4 class="page-header">{% trans 'Client Setup' %}
+	</h4>
+	{% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}"{% endif %}>{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+	
+    <h5>
+    	<form method="POST" action="{% url 'client_setup' object.pk %}">
+    <input type="submit" name="submit" value="Save changes" class="btn btn-primary" id="submit-form">
+	<input type="submit" name="pend" value="Save for later" class="btn btn-primary" id="pend-form">	
+    </h5>
+    <div class="container-fluid">
+		<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+  <div class="panel panel-default">
+  	<div class="bg-primary">
+    <div class="panel-heading" role="tab" id="heading1">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#accordion" href="#collapse1" aria-expanded="true" aria-controls="collapse1">
+          #1 - Identification
+          {% if invalid_forms %}
+            {% if id_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+            {% else %}<i class="fa fa-check"></i>
+            {%endif%}
+          {%endif%}
+        </a>
+      </h4>
+    </div>
+    </div>
+    <div id="collapse1" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="heading1">
+      <div class="panel-body">
+        {% crispy id_form %}
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+  	<div class="bg-primary">
+    <div class="panel-heading" role="tab" id="heading2">
+      <h4 class="panel-title">
+        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse2" aria-expanded="false" aria-controls="collapse2">
+          #2 - Contact
+          {% if invalid_forms %}
+            {% if contact_form.errors or address_form.errors or phones_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+            {% else %}<i class="fa fa-check"></i>
+            {%endif%}
+          {%endif%}
+        </a>
+      </h4>
+      </div>
+    </div>
+    <div id="collapse2" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading2">
+      <div class="panel-body">
+ 		<h5><span class="text-primary">Address</span></h5>
+ 		<div class="well">
+ 		{% crispy address_form %}
+ 		</div>
+ 		<h5><span class="text-primary">Phones</span></h5>
+ 		<div class="well">
+ 		{{ phones_form.management_form }}
+ 		{% for form in phones_form %}
+ 			{% crispy form %}
+ 		{% endfor %}
+ 		</div>
+ 		<div class="well">
+        {% crispy contact_form %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+  	<div class="bg-primary">
+    <div class="panel-heading" role="tab" id="heading3">
+      <h4 class="panel-title">
+        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse3" aria-expanded="false" aria-controls="collapse2">
+          #3 - Communication
+          {% if invalid_forms %}
+            {% if comm_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+            {% else %}<i class="fa fa-check"></i>
+            {%endif%}
+          {%endif%}
+        </a>
+      </h4>
+    </div>
+   </div>
+    <div id="collapse3" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading3">
+      <div class="panel-body">
+ 		{% crispy comm_form %}
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+  	<div class="bg-primary">
+    <div class="panel-heading" role="tab" id="heading4">
+      <h4 class="panel-title">
+        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse4" aria-expanded="false" aria-controls="collapse4">
+          #4 - Referral
+          {% if invalid_forms %}
+            {% if ref_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+            {% else %}<i class="fa fa-check"></i>
+            {%endif%}
+          {%endif%}
+        </a>
+      </h4>
+     </div>
+    </div>
+    <div id="collapse4" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading4">
+      <div class="panel-body">
+      	{% crispy ref_form %}
+      </div>
+    </div>
+  </div>
+</div>
+		
+	</div>
+</form>
+	
+	  
+
+{% endblock content %}
+
+{% block javascript_extra %}
+
+<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
+<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
+<script type="text/javascript" src="{% static 'plugins/jquery-dateentry/jquery.plugin.js' %}"></script> 
+<script type="text/javascript" src="{% static 'plugins/jquery-dateentry/jquery.dateentry.js' %}"></script>
+
+<script>
+	/* Project specific Javascript goes here. */
+$(document).ready(function() {
+	//$( "#tab_links" ).tabs();
+	 
+
+//    $( "#show-comm-form-lines" ).click(function() {
+//     $( ".comm-form-line" ).show("blind");
+//    });
+// 	$( "#cancel-comm-form" ).click(function() {
+//     $( ".comm-form-line" ).hide();
+//    });
+//   $("#id_id-birth_date").dateEntry({
+//   		dateFormat: 'dny ', 
+//   		defaultDate: '12/25/2014', 
+//   		initialField: 0
+//   	});
+   $("#id_ref-ref_date").dateEntry({
+   		dateFormat: 'dny ',
+   		initialField: 0});
+   
+   $(".phone_row").formset({
+           // prefix: '{{ phone_form.prefix }}'
+        });
+   
+	//$('a[data-parent="#accordion"]').click(function(){
+	//	alert('clicked!');
+	//})
+
+
+{% block javascript_extra_tab %}
+{% endblock javascript_extra_tab %}
+});
+
+</script>
+{% endblock javascript_extra %}

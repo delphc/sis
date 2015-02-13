@@ -33,5 +33,7 @@ urlpatterns = patterns('',
     # Your stuff: custom urls go here
     url(r'^clients/', include('clients.urls')),
     url(r'^contacts/', include('contacts.urls')),
+    
+    (r'^selectable/', include('selectable.urls')),
 
 ) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -2,9 +2,16 @@ from django.contrib import admin
 
 from clients.models import Client, ReferralReason, Referral, Relationship
 from food.models import FoodCategory, FoodIngredient
+from contacts.admin import ContactInfoInline
+
+class ClientAdmin(admin.ModelAdmin):
+    inlines = [
+        ContactInfoInline,
+    ]
+    
 # Register your models here.
 
-admin.site.register(Client)
+admin.site.register(Client, ClientAdmin)
 admin.site.register(FoodCategory)
 admin.site.register(FoodIngredient)
 

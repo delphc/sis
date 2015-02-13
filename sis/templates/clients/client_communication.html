@@ -97,16 +97,21 @@
   <tr class="form-line">
     <td></td>
     <td>
+    	{% comment "former code - commented out following refactoring of client setup" %}
     	{{ form.email_address|as_crispy_field:"bootstrap" }}
+    	{% endcomment %}
     </td>
   </tr>
   <tr >
     <td >{% trans 'Phone' %}</td>
     
     <td ><ul class="list-unstyled">
+    	{% comment "former code - commented out following refactoring of client setup" %}
+    	
     	{% for phone in phones %}
     		<li>{{ phone.get_type_display }}: {{ phone.number}} {% if phone.info %}({{ phone.info}}){% endif %}</li> 
 		{% endfor %}
+		{% endcomment %}
     </ul>	
     </td>
    

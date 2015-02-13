@@ -26,7 +26,15 @@
 	    		</div>
 		   		
    				<div id="form-sw" class="well">
-   					{% crispy org_form %}
+   					
+   					{% for form in org_form %}
+  						<div class="inline phone_row row">
+  							{% crispy org_form %}
+  							
+   						</div>
+   					{% endfor %}
+				        
+				   	{{ org_form.management_form }}
    				</div>
    				<div id="form-address" class="panel panel-default">
    					<div class="panel-heading">{%trans 'Address' %}</div>
@@ -128,6 +136,11 @@ $(document).ready(function() {
 		$('.phone_row').formset({
         	prefix: '{{ phone_form.prefix }}',
 			formCssClass: 'dynamic-formsetphone',
+			//autoAddLinks: false               // do not add add and delete links to the formsets
+		});
+		$('.org_row').formset({
+        	prefix: '{{ org_form.prefix }}',
+			formCssClass: 'dynamic-formsetorg',
 			//autoAddLinks: false               // do not add add and delete links to the formsets
 		});
 		
