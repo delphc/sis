@@ -1,0 +1,10 @@
+
+{% load staticfiles %}
+{% load i18n %}
+
+   $("#{{entity_type}}-form-phones .phone_row").formset({
+            prefix: '{{ phones_form_prefix }}',
+            addText: '<i class="fa fa-plus-circle"></i> {% trans "Add phone" %}',
+            deleteText: '<i class="fa fa-remove"> {% trans "Remove phone" %}'
+        });
+        

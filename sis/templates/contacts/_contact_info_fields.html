@@ -1,0 +1,24 @@
+{% load staticfiles i18n %}
+{% load crispy_forms_tags %}
+{% load core_filters %}
+
+<div id="form-address" class="well row">
+{% crispy address_form %}
+</div>
+
+<div id="{{ view.entity_type}}-form-phones" class="well row">
+    <div class="form-group">
+        {{ phones_form.management_form }}
+        <label class="control-label col-xs-3">{% trans "Phones" %}</label>
+        <div class="controls col-xs-9">
+            <div class="container-fluid">
+            {% for form in phones_form %}
+                {% crispy form %}
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+<div id="form-contactinfo" class="well row">
+    {% crispy contact_form %}
+</div>

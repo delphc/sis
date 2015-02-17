@@ -816,6 +816,10 @@ div.vertical-tab div.vertical-tab-content:not(.active){
     padding-bottom: 10px;
 }
 
+.form-readonly-field {
+    padding-top: 10px;
+}
+
 #tab_links li.tab-pane {
     background-color: #006E24;
     

@@ -31,7 +31,7 @@
      </div>
    </div>
 </div>
-<form method="post" id="contact-create-form" action={% url 'contact_create' %}>{% csrf_token %}					
+<form method="post" id="contact-create-form" action="{{ view.form_action }}">{% csrf_token %}					
 	    				
 	<div class="row">
 	    <div class="col-sm-12">
@@ -57,43 +57,7 @@
    				<div id="form-address" class="panel panel-default">
    					<div class="panel-heading">{%trans 'Address' %}</div>
   					<div class="panel-body">
-				    {% for form in address_form.forms %}
-				    	<div class="div-client-address">
-				            <div class="row">
-				            	<div class="col-xs-8">
-				            		{% if form.instance.pk %}
-				            		{{ form.id }}
-				            		{{ form.DELETE }}
-				            		{% endif %}
-				           			{{ form.street | as_crispy_field }}
-				            	</div>
-				            	<div class="col-xs-2">
-				            		{{ form.apt | as_crispy_field}}
-				            	</div>
-				            	<div class="col-xs-2">
-				            		{{ form.entry_code | as_crispy_field}}
-				            	</div>
-				            </div>
-				            <div class="row">
-				            	<div class="col-xs-4">
-				            		{{ form.city | as_crispy_field}}
-				            	</div>
-				            	<div class="col-xs-2">
-				            		{{ form.prov | as_crispy_field}}
-				            	</div>
-				            	<div class="col-xs-4">
-				            		{{ form.zip_code | as_crispy_field }}
-				            	</div>
-				            </div>
-				            <div class="row">
-				            	<div class="col-xs-12">
-				            		{{ form.info | as_crispy_field }}
-				            	</div>
-				            </div>
-				    	</div>
-				    {% endfor %}
-				        
-				   	{{ address_form.management_form }}
+				    {% crispy address_form %}
    					</div>  
    				</div>
    				<div id="form-phone" class="panel panel-default">
@@ -133,95 +97,5 @@
 </form>
 {% endblock content %}
 
-{% block javascript_extra %}
 
-<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
-<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
-<script type="text/javascript">
-$(document).ready(function() {
-	//$('#id_cdif_exd').removeAttr('class');
-	//$('#id_cdif_exd').removeClass('checkboxinput');
-	//$('input[type="button"]').
-   $(function() {
-   	
-    //$( "#radio_id_gender" ).buttonset();
-		
-    	$('.div-client-address').formset({
-        	prefix: '{{ address_form.prefix }}',
-			formCssClass: 'dynamic-formsetaddress',
-			//autoAddLinks: false               // do not add add and delete links to the formsets
-		});
-		$('.phone_row').formset({
-        	prefix: '{{ phone_form.prefix }}',
-			formCssClass: 'dynamic-formsetphone',
-			//autoAddLinks: false               // do not add add and delete links to the formsets
-		});
-		
-		$('.org_row').formset({
-        	prefix: '{{ org_form.prefix }}',
-			formCssClass: 'dynamic-formsetorg',
-			//autoAddLinks: false               // do not add add and delete links to the formsets
-		});
-		
-		$('#id_contact_type').change(function(){
-	      var data=$(this).val();
-	      if (data === 'N') { // for 'next of kin' category
-	      	$('#form-address').show();
-	      	$('#form-sw').hide();
-	      	
-	      } else { // W for 'case worker' category
-	      	$('#form-address').hide();
-	      	$('#form-sw').show();
-	      }
-      	          
-    	});
-    	{% if object == None %}
-    		
-    		$('#id_contact_type').val('{{form.contact_type.value }}').trigger('change');
-    		
-    	{% else %}
-    		$('#id_contact_type').val('{{ object.contact_type.0 }}').trigger('change');
-    	{% endif %}
-    	
-    	var formAjaxSubmit = function(form, modal) {
-                $(form).submit(function (e) {
-                    e.preventDefault();
-                    $.ajax({
-                        type: $(this).attr('method'),
-                        url: $(this).attr('action'),
-                        data: $(this).serialize(),
-                        success: function (xhr, ajaxOptions, thrownError) {
-                        	alert(xhr.pk);
-                            if ( $(xhr).find('.has-error').length > 0 ) {
-                                $(modal).find('.modal-body').html(xhr);
-                                formAjaxSubmit(form, modal);
-                            } else {
-                                $(modal).modal('toggle');
-                                var newOrg = xhr;
-            					var newSelect = $('#id_sw-organization');
-            					newSelect.append('<option value="' + newOrg.pk + '" >' + newOrg.name + '</option>');
-            					$('#id_sw-organization').replaceWith(newSelect);
-           						$("#id_sw-organization option[value='" + newOrg.pk + "']").attr('selected', 'selected');
-             
-                            }
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                        }
-                    });
-                });
-            }
-        $('#new-org-button').click(function() {
-            $('#form-modal-body').load('/contacts/org/create', function () {
-                $('#form-modal').modal('toggle');
-                formAjaxSubmit('#org-create-form', '#form-modal');
-            });
-        });
-	});
-	
-	 
-   //DashboardTabChecker();
-});
-
-</script>
-{% endblock javascript_extra %}
 

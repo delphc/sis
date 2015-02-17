@@ -1,103 +1,105 @@
 {% extends 'base.html' %}
 {% load i18n %}
 {% load staticfiles %}
+{% load selectable_tags %}
+{% block css_extra %}
+    {% include_ui_theme %}
+    {% block css_extra_tab %}
+    {% endblock css_extra_tab %}
+{% endblock css_extra %}
 {% block breadcrumb %}
 	<li><a href="#">Clients</a></li>
-	<li><a href="#">Profile</a></li>	       				
+	<li><a href="#">Client Profile</a></li>	       				
 {% endblock breadcrumb %}
 {% block content %}	      			  
-
-
-	<h4 class="page-header">{% trans 'Client Profile' %}</h4>
-    
-	<div class="col-sm-4 col-xs-12">
-		<div class="panel">    			
-	    	<div class="panel-heading">
-                 <span>{% trans 'Overview' %}</span>
-          	</div>
-           	<div class="panel-body">
-           		<div>{% trans 'Client status' %}:{{ object.get_status_display }}</div>
-           		<div> {{ object.first_name }} {{ object.middle_name }} {{ object.last_name }}</div>
-
-	    		<div>
-	    			
-	    		<i class="fa {{ object.get_gender_icon }}" title="{{ object.get_gender_display }}"></i>
-	    		<span>{{ object.get_com_lang_display }} ({% trans 'Native' %}: {{ object.native_lang }})</span>
-	    		</div>
-	    		
-				<div class="address">
-					<address>
-						<i class="fa fa-home"></i>
-						{{ address.get_line_1 }}<br/>
-						{{ address.get_line_2 }}<br/>
-						{{ address.get_line_3 }}<br/>
-					</address>	
-				</div>
-				{% if not object.direct_contact %}
-				    <label class="label-danger">Do not contact directly</label>
-				{% endif %}
-				{% for phone in phones %}
-				<div class="phone">
-					<i class="fa fa-phone"></i>
-					<span>{{ phone.type }}: {{ phone.number }}</span>
-				</div>
-				{% endfor %}
-				
-				<!--<a href="{% url 'client_update' object.id %}" class="btn">Update profile</a>-->
-	    	</div>
-	    </div>
-	</div>
-	<div class="col-sm-8 col-xs-12">
-		
-		<div class="row">
-	    		
-			<div class="tab-content col-xs-12 col-sm-9 vertical-tab-container">
-				{% block tab-content %}
-				{% endblock tab-content %}
-				
-			</div>
-			<div id="tab_links" class="col-xs-12 col-sm-3">
-				<ul class="nav nav-tabs nav-stacked pull-right">
-					
-					<li class="tab-pane {% if tab == 'id' %} active {% endif %}">
-						<a href="{% url 'client_profile_identification' pk=object.id %}" >{% trans 'Identification' %}</a>
-					</li>
-					<li class="tab-pane {% if tab == 'contact' %} active {% endif %}">
-						<a href="{% url 'client_profile_contact' pk=object.id %}" >{% trans 'Contact' %}</a>
-					</li>
-					<li class="tab-pane {% if tab == 'comm' %} active {% endif %}">
-                        <a href="{% url 'client_profile_communication' pk=object.id %}" >{% trans 'Communication' %}</a>
-                    </li>
-					<li class="tab-pane {% if tab == 'ref' %} active {% endif %}">
-						<a href="{% url 'client_profile_referral' pk=object.id %}" >{% trans 'Referral' %}</a>
-					</li>
-					{% comment %}
-					<li class="tab-pane {% if tab == 'order' %} active {% endif %}">
-						<a href="{% url 'client_profile_order' pk=object.id %}" >{% trans 'Command' %}</a>
-					</li>
-					
-					<li class="tab-pane">
-						<a href="{% url 'client_profile' tab='meal' pk=object.id %}" >{% trans 'Meal' %}</a>
-					</li>
-					<li class="tab-pane">
-						<a href="{% url 'client_profile' tab='contacts' pk=object.id %}" >{% trans 'Contacts' %}</a>
-					</li>
-					<li class="tab-pane">
-						<a href="{% url 'client_profile' tab='deliv' pk=object.id %}" >{% trans 'Deliveries' %}</a>
-					</li>
-					<li class="tab-pane">
-						<a href="{% url 'client_profile' tab='bill' pk=object.id %}" >{% trans 'Billing' %}</a>
-					</li>
-					<li class="tab-pane">
-						<a href="{% url 'client_profile' tab='hist' pk=object.id %}" >{% trans 'History' %}</a>
-					</li>
-					{% endcomment%}
-				</ul>
-			</div>
-		</div>
-	</div>
+	
+<div class="col-sm-12 col-xs-12">
+    <div class="row">
+    	<div class="panel col-xs-12">    			
+        	<div class="panel-body row">
+        	    <div class="col-xs-4">
+               		<div><strong>{{ object.first_name }} {{ object.middle_name }} {{ object.last_name }}</strong></div>
+            		
+        			<div class="address">
+        				<address>
+        					<i class="fa fa-home"></i>
+        					{{ address.get_line_1 }}<br/>
+        					{{ address.get_line_2 }}<br/>
+        				</address>	
+        			</div>
+    			</div>
+    			<div class="col-xs-4">
+        			{% if not object.direct_contact %}
+        			    <span class="label label-danger">{% trans 'Do not contact directly' %}</span>
+        			{% endif %}
+        			{% for phone in phones %}
+        			<div class="phone">
+        				<i class="fa fa-phone"></i>
+        				<span>{{ phone.type }}: {{ phone.number }}</span>
+        			</div>
+        			{% endfor %}
+        			<div>
+                    <i class="fa {{ object.get_gender_icon }}" title="{{ object.get_gender_display }}"></i>
+                    <span>{{ object.get_com_lang_display }} ({% trans 'Native' %}: {{ object.native_lang }})</span>
+                    </div>
+                    
+    			</div>
+    			<div class="col-xs-4">
+    			    <div>Route:(To come)</div>
+    			    <div>{% trans 'Client status' %}:{{ object.get_status_display }}</div>
+    			</div>
+        	</div>
+        </div>
+    </div>
 
 	
+	<div class="row">
+    		
+		<div class="tab-content col-xs-12 col-sm-10 vertical-tab-container">
+			{% block tab-content %}
+			{% endblock tab-content %}
+			
+		</div>
+		<div id="tab_links" class="col-xs-12 col-sm-2">
+			<ul class="nav nav-tabs nav-stacked pull-right">
+				
+				<li class="tab-pane {% if tab == 'id' %} active {% endif %}">
+					<a href="{% url 'client_profile_identification' pk=object.id %}" >{% trans 'Identification' %}</a>
+				</li>
+				<li class="tab-pane {% if tab == 'contact' %} active {% endif %}">
+					<a href="{% url 'client_profile_contact' pk=object.id %}" >{% trans 'Contact' %}</a>
+				</li>
+				<li class="tab-pane {% if tab == 'comm' %} active {% endif %}">
+                    <a href="{% url 'client_profile_communication' pk=object.id %}" >{% trans 'Communication' %}</a>
+                </li>
+				<li class="tab-pane {% if tab == 'ref' %} active {% endif %}">
+					<a href="{% url 'client_profile_referral' pk=object.id %}" >{% trans 'Referral' %}</a>
+				</li>
+				{% comment %}
+				<li class="tab-pane {% if tab == 'order' %} active {% endif %}">
+					<a href="{% url 'client_profile_order' pk=object.id %}" >{% trans 'Command' %}</a>
+				</li>
+				
+				<li class="tab-pane">
+					<a href="{% url 'client_profile' tab='meal' pk=object.id %}" >{% trans 'Meal' %}</a>
+				</li>
+				<li class="tab-pane">
+					<a href="{% url 'client_profile' tab='contacts' pk=object.id %}" >{% trans 'Contacts' %}</a>
+				</li>
+				<li class="tab-pane">
+					<a href="{% url 'client_profile' tab='deliv' pk=object.id %}" >{% trans 'Deliveries' %}</a>
+				</li>
+				<li class="tab-pane">
+					<a href="{% url 'client_profile' tab='bill' pk=object.id %}" >{% trans 'Billing' %}</a>
+				</li>
+				<li class="tab-pane">
+					<a href="{% url 'client_profile' tab='hist' pk=object.id %}" >{% trans 'History' %}</a>
+				</li>
+				{% endcomment%}
+			</ul>
+		</div>
+	</div>
+</div>
 	  
 
 {% endblock content %}
@@ -145,4 +147,7 @@ $(document).ready(function() {
 });
 
 </script>
+{% block selectable-js %}
+{% endblock selectable-js %}
 {% endblock javascript_extra %}
+

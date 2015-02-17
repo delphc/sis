@@ -1,174 +1,37 @@
-{% extends 'base.html' %}
 {% load staticfiles i18n %}
 {% load crispy_forms_tags %}
 {% load core_filters %}
 
-{% block css_extra %}
-<link href="{% static 'plugins/jquery-ui/jquery-ui.css' %}" rel="stylesheet">
-{% endblock css_extra %}
 
-{% block breadcrumb %}
-	<li><a href="{% url 'contact_list' %}">Contacts</a></li>
-	<li><a href="#">{{ form.helper.form_title }}</a></li>	       				
-{% endblock breadcrumb %}
-{% block content %}	      			  
-
-<form method="post">{% csrf_token %}					
-	    				
-	<div class="row">
-	    <div class="col-sm-12">
-	        <div class="container-fluid">
-	    		<h4 class="pageHeader">{{ form.helper.form_title }}</h4>
-	    		
-	    		<div id="form-main" class="well">
-   					{% crispy form %}
-   					{% crispy contact_form %}
-	    		</div>
-		   		
-   				<div id="form-sw" class="well">
-   					
-   					{% for form in org_form %}
-  						<div class="inline phone_row row">
-  							{% crispy org_form %}
-  							
-   						</div>
-   					{% endfor %}
-				        
-				   	{{ org_form.management_form }}
-   				</div>
-   				<div id="form-address" class="panel panel-default">
-   					<div class="panel-heading">{%trans 'Address' %}</div>
-  					<div class="panel-body">
-				    {% for form in address_form.forms %}
-				    	<div class="div-client-address">
-				            <div class="row">
-				            	<div class="col-xs-8">
-				            		{% if form.instance.pk %}
-				            		{{ form.id }}
-				            		{{ form.DELETE }}
-				            		{% endif %}
-				           			{{ form.street | as_crispy_field }}
-				            	</div>
-				            	<div class="col-xs-2">
-				            		{{ form.apt | as_crispy_field}}
-				            	</div>
-				            	<div class="col-xs-2">
-				            		{{ form.entry_code | as_crispy_field}}
-				            	</div>
-				            </div>
-				            <div class="row">
-				            	<div class="col-xs-4">
-				            		{{ form.city | as_crispy_field}}
-				            	</div>
-				            	<div class="col-xs-2">
-				            		{{ form.prov | as_crispy_field}}
-				            	</div>
-				            	<div class="col-xs-4">
-				            		{{ form.zip_code | as_crispy_field }}
-				            	</div>
-				            </div>
-				            <div class="row">
-				            	<div class="col-xs-12">
-				            		{{ form.info | as_crispy_field }}
-				            	</div>
-				            </div>
-				    	</div>
-				    {% endfor %}
-				        
-				   	{{ address_form.management_form }}
-   					</div>  
-   				</div>
-   				<div id="form-phone" class="panel panel-default">
-   					<div class="panel-heading">{%trans 'Phone' %}</div>
-  					<div class="panel-body">
-  						{% for form in phone_form.forms %}
-  						<div class="inline phone_row row">
-  							
-  							<div class="col-xs-2">
-  								{% if form.instance.pk %}
-  								{{ form.id }}
-  								{{ form.DELETE }}
-  								{% endif %}
-  								{{ form.type | as_crispy_field }}
-  							</div>
-  							<div class="col-xs-3">
-  								{{ form.number | as_crispy_field }}
-  							</div>
-  							<div class="col-xs-2">
-  								{{ form.extension | as_crispy_field }}
-  							</div>
-  							<div class="col-xs-4">
-  								{{ form.info | as_crispy_field }}
-  							</div>
-   						</div>
-   						{% endfor %}
-				        
-				   		{{ phone_form.management_form }}
-   					</div>
-   				</div>
-   				<div class="form-actions">
-     				<input type="submit" name="submit" value="Save" class="btn btn-primary" id="submit-save">
-    			</div>
-			</div>
-		</div>
-	</div>
+<form method="post" id="{{ view.entity_type }}-create-form" action="{{ view.form_action }}">{% csrf_token %}                   
+                        
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="container-fluid">
+                <h4 class="pageHeader">{{ form.helper.form_title }}</h4>
+                
+                <div id="form-main" class="well row">
+                    {% crispy form %}
+                </div>
+                
+                <div id="form-sw" class="well row">
+                     
+                     {% for form in org_form.forms %}
+                            {% crispy form %}
+                            
+                    {% endfor %}
+                        
+                    {{ org_form.management_form }}
+                </div>
+                
+                {% include "contacts/_contact_info_fields.html" %}
+                
+                <div class="form-actions">
+                    <input type="submit" name="submit" value="Save" class="btn btn-primary" id="submit-contact">
+                </div>
+            </div>
+        </div>
+    </div>
 </form>
-{% endblock content %}
 
-{% block javascript_extra %}
-
-<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
-<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
-<script type="text/javascript">
-$(document).ready(function() {
-	//$('#id_cdif_exd').removeAttr('class');
-	//$('#id_cdif_exd').removeClass('checkboxinput');
-	//$('input[type="button"]').
-   $(function() {
-   	
-    //$( "#radio_id_gender" ).buttonset();
-		
-    	$('.div-client-address').formset({
-        	prefix: '{{ address_form.prefix }}',
-			formCssClass: 'dynamic-formsetaddress',
-			//autoAddLinks: false               // do not add add and delete links to the formsets
-		});
-		$('.phone_row').formset({
-        	prefix: '{{ phone_form.prefix }}',
-			formCssClass: 'dynamic-formsetphone',
-			//autoAddLinks: false               // do not add add and delete links to the formsets
-		});
-		$('.org_row').formset({
-        	prefix: '{{ org_form.prefix }}',
-			formCssClass: 'dynamic-formsetorg',
-			//autoAddLinks: false               // do not add add and delete links to the formsets
-		});
-		
-		$('#id_contact_type').change(function(){
-	      var data=$(this).val();
-	      if (data === 'N') { // for 'next of kin' category
-	      	$('#form-address').show();
-	      	$('#form-sw').hide();
-	      	
-	      } else { // W for 'case worker' category
-	      	$('#form-address').hide();
-	      	$('#form-sw').show();
-	      }
-      	          
-    	});
-    	{% if object == None %}
-    		
-    		$('#id_contact_type').val('{{form.contact_type.value }}').trigger('change');
-    		
-    	{% else %}
-    		$('#id_contact_type').val('{{ object.contact_type.0 }}').trigger('change');
-    	{% endif %}
-	});
-	
-	 
-   //DashboardTabChecker();
-});
-
-</script>
-{% endblock javascript_extra %}
 

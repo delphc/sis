@@ -4,10 +4,8 @@ import logging
 import sys
 
 from django.shortcuts import render
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
-from django.core.urlresolvers import reverse_lazy
 from django.core.exceptions import ImproperlyConfigured
 from django.forms.models import formset_factory
 from django.http import HttpResponseRedirect, JsonResponse
@@ -22,27 +20,20 @@ from datatableview.helpers import link_to_model
 from auditlog.models import LogEntry
 #from cbvtoolkit.views import MultiFormView
 
-from .forms import ContactForm, ContactInfoForm, OrganizationForm, OrganizationMemberForm, OrganizationMemberFormSet, AddressFormSet, AddressFormSetHelper, WorkPhoneFormSet, PhoneFormSetHelper
+from .forms import AddressForm, ContactForm, ContactInfoForm, OrganizationForm, OrganizationMemberForm, OrganizationMemberFormSet, AddressFormSet, AddressFormSetHelper, WorkPhoneFormSet, PhoneFormSetHelper
 
 # Import the customized User model
-from .models import Address, Phone, Contact, Organization
+from .models import ContactEntity, SocialWorker, Address, Phone, Contact, Organization
 from clients.models import RelationType
+
+from core.views import ActionMixin, AjaxTemplateMixin
 
 logger = logging.getLogger(__name__)
 
-class AjaxTemplateMixin(object):
-    def dispatch(self, request, *args, **kwargs):
-        if not hasattr(self, 'ajax_template_name'):
-            split = self.template_name.split('.html')
-            split[-1] = '_inner'
-            split.append('.html')
-            self.ajax_template_name = ''.join(split)
-        if request.is_ajax():
-            self.template_name = self.ajax_template_name
-        return super(AjaxTemplateMixin, self).dispatch(request, *args, **kwargs)
 
 
 # Create your views here.
+
 class ContactActionMixin(object):
     @property
     def action(self):
@@ -60,9 +51,9 @@ class ContactActionMixin(object):
     
     def form_action(self):
         if self.action == 'create':
-            return reverse('contact_create')
+            return reverse_lazy('contact_create')
         else:
-            return reverse('contact_update', args=[str(self.object.id)])
+            return reverse_lazy('contact_update', args=[str(self.object.id)])
         
     def form_title(self, form):
         if self.action == 'create':
@@ -82,11 +73,320 @@ class ContactListView(LoginRequiredMixin, DatatableView):
     
     implementation = u""
 
-class ContactCreateView(LoginRequiredMixin, ContactActionMixin, CreateView):
+class ContactInfoMixin(ActionMixin):
+    entity_type = ""
+    initial = {
+               'form': {},
+               'contact_info': {},
+               'address': {},
+               'phones': {}
+               }
+    
+    def get_form_action_url(self):
+        
+        if self.form_action_url:
+            return self.form_action_url
+        
+        if self.action == "create":
+            self.form_action_url = self.entity_type+"_create" 
+        else:
+            self.form_action_url = self.entity_type+"_update"
+    
+        return self.form_action_url
+    
+    
+    
+    def get(self, request, *args, **kwargs):
+        """
+        Handles GET requests and instantiates blank versions of the form
+        and its inline formsets.
+        """
+        print >>sys.stderr, '*** ENTERING GET ****' 
+        
+        forms = self.init_forms()
+        
+        return self.render_to_response(self.get_context_data(**forms))
+   
+    def post(self, request, *args, **kwargs):
+        
+        forms = self.init_forms()
+        
+        forms_valid = self.validate_forms(forms)
+        if forms_valid:
+            self.form_valid(forms)
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            return self.form_invalid(forms)
+    
+    def get_prefix(self, prefix):
+        return self.entity_type + "_" + prefix
+    
+    def get_initial(self, prefix):
+        return self.initial[prefix].copy()
+    
+    def get_form_instance(self, prefix):
+        if not self.object:
+            return None
+        
+        if prefix == "form":
+            return self.object
+        elif prefix == "contact_info" or prefix == "phones":
+            return self.object.get_contact_info()
+        elif prefix == "address":
+            return self.object.get_contact_info().get_address()
+        
+            
+        
+    def get_form_kwargs(self, prefix):
+        """
+        Returns the keyword arguments for instantiating the form.
+        """
+        kwargs = {
+            'initial': self.get_initial(prefix),
+            'prefix': self.get_prefix(prefix),
+        }
+        if self.request.method in ('POST', 'PUT'):
+            kwargs.update({
+                'data': self.request.POST,
+                'files': self.request.FILES,
+            })
+        if hasattr(self, 'object'):
+            kwargs.update({'instance': self.get_form_instance(prefix)})
+        
+        return kwargs
+
+    def get_form(self, form_class, prefix):
+        return form_class(**self.get_form_kwargs(prefix))
+    
+    def init_forms(self):
+        forms = {}
+        post_request = self.request.method in ('POST', 'PUT')
+        form_class = self.get_form_class()
+        form = self.get_form(form_class, "form")
+        forms['form'] = form
+        
+        contact_form = self.get_form(ContactInfoForm, 'contact_info')
+        forms['contact_form'] = contact_form    
+        
+        address_form = self.get_form(AddressForm, 'address')
+        forms['address_form'] = address_form
+        
+        phones_form = self.get_form(WorkPhoneFormSet, 'phones')
+        forms['phones_form'] = phones_form
+        
+        return forms
+    
+    def validate_forms(self, forms):
+        form = forms['form']
+        contact_form = forms['contact_form']
+        address_form = forms['address_form']
+        phones_form = forms['phones_form']
+        
+        print >>sys.stderr, '*** form data *** %s' % form.data
+        forms_valid = form.is_valid() and \
+            contact_form.is_valid() and \
+            address_form.is_valid() and \
+            phones_form.is_valid()
+                    
+        return forms_valid
+    
+    def form_invalid(self, forms):
+        
+        return self.render_to_response(
+            self.get_context_data(**forms))
+   
+class ContactEntityCreateView(LoginRequiredMixin, ContactInfoMixin, AjaxTemplateMixin, CreateView):
+    model = ContactEntity
+    
+    action = "create"
+    
+#     def get_form_class(self):
+#         if self.entity_type == "org":
+#             self.form_class = OrganizationForm 
+#         elif self.entity_type == "contact":
+#             self.form_class = ContactForm
+#             
+#         return self.form_class
+    
+    
+    def get(self, request, *args, **kwargs):
+        """
+        Handles GET requests and instantiates blank versions of the form
+        and its inline formsets.
+        """
+        print >>sys.stderr, '*** ENTERING GET ****' 
+        
+        self.object = None
+        
+        return super(ContactEntityCreateView, self).get(request, *args, **kwargs)
+            
+    # overrides ProcessFormView.post
+    def post(self, request, *args, **kwargs):
+        self.object = None
+        
+        return super(ContactEntityCreateView, self).post(request, *args, **kwargs)
+    
+    
+    def form_valid(self, forms):
+        form = forms['form']
+        contact_form = forms['contact_form']
+        address_form = forms['address_form']
+        phones_form = forms['phones_form']
+        
+        self.object = form.save(commit=False)
+        self.object.save()
+        contact_info = contact_form.save(commit=False)
+        
+        contact_type = ContentType.objects.get_for_model(self.object)
+        contact_info.content_type = contact_type
+        contact_info.content_object = self.object
+        contact_info.save()
+        
+        address = address_form.save(commit=False)
+        address.contact_info = contact_info
+        address.save()
+               
+        phones_form.instance = contact_info
+        phones_form.save()
+                
+class ContactEntityUpdateView(LoginRequiredMixin, ContactInfoMixin, AjaxTemplateMixin, UpdateView):
+    model = ContactEntity
+    
+    action = "update"
+
+    def get(self, request, *args, **kwargs):
+        """
+        Handles GET requests and instantiates blank versions of the form
+        and its inline formsets.
+        """
+        print >>sys.stderr, '*** ENTERING GET ****' 
+        
+        self.object = self.get_object()
+        
+        return super(ContactEntityUpdateView, self).get(request, *args, **kwargs)
+            
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        return super(ContactEntityUpdateView, self).post(request, *args, **kwargs)
+    
+    def form_valid(self, forms):
+        form = forms['form']
+        contact_form = forms['contact_form']
+        address_form = forms['address_form']
+        phones_form = forms['phones_form']
+        
+        self.object = form.save(commit=False)
+        self.object.save()
+        contact_info = contact_form.save(commit=False)
+        
+        contact_type = ContentType.objects.get_for_model(self.object)
+        contact_info.content_type = contact_type
+        contact_info.content_object = self.object
+        contact_info.save()
+        
+        address = address_form.save(commit=False)
+        address.contact_info = contact_info
+        address.save()
+               
+        phones_form.instance = contact_info
+        phones_form.save()
+
+class ContactMixin(object):
+    def get_initial(self, prefix):
+        if prefix == "org":
+            return {}
+        else:
+            return super(ContactMixin, self).get_initial(prefix)
+
+    def init_forms(self):
+        forms = super(ContactMixin, self).init_forms()
+        
+        org_form = self.get_form(OrganizationMemberFormSet, "org")
+        forms['org_form'] = org_form
+        
+        return forms
+    
+    def validate_forms(self, forms):
+        forms_valid = super(ContactMixin, self).validate_forms(forms)
+        
+        form = forms['form']
+        contact_form = forms['contact_form']
+        address_form = forms['address_form']
+        phones_form = forms['phones_form']
+        org_form = forms['org_form']
+        
+        forms_valid = forms_valid 
+        
+        contact_type = form.cleaned_data['contact_type']
+        if (contact_type == Contact.SOCIAL_WORKER):
+            forms_valid = forms_valid and org_form.is_valid()
+        else:
+            forms_valid = forms_valid and address_form.is_valid()
+        
+        if (address_form.has_changed()):
+            print >>sys.stderr, '*** address_form has changed ***' 
+        
+        else:
+            print >>sys.stderr, '*** address_form has not changed ***' 
+        
+        if (org_form.has_changed()):
+            print >>sys.stderr, '*** social_worker_form has changed ***!' 
+        
+        else:
+            print >>sys.stderr, '*** social_worker_form has not changed ***!' 
+        
+            
+        if (phones_form.has_changed()):
+            forms_valid = forms_valid and phones_form.is_valid() 
+        return forms_valid
+    
+    
+    def form_valid(self, forms):
+        super(ContactMixin, self).form_valid(forms)
+        
+        if isinstance(self.object, SocialWorker):
+            org_form = forms['org_form']
+        
+            org = org_form.save(commit=False)
+            org.social_worker = self.object
+            org.save()
+            
+    
+class ContactCreateView(ContactMixin, ContactEntityCreateView):
     model = Contact
-    action = "create" # used for ContactActionMixin functionality
+    entity_type = "contact"
+    template_name = "contacts/contact_new_form.html"
+    ajax_template_name = "contacts/contact_form_inner.html" 
     form_class = ContactForm
     
+
+class ContactUpdateView(ContactMixin, ContactEntityUpdateView):
+    model = Contact
+    entity_type = "contact"
+    template_name = "contacts/contact_new_form.html"
+    ajax_template_name = "contacts/contact_form_inner.html" 
+    form_class = ContactForm
+    
+class OrganizationCreateView(ContactEntityCreateView):
+    model = Organization
+    entity_type = "org"
+    template_name = 'contacts/organization_form.html'
+    ajax_template_name = 'contacts/organization_form_inner.html'
+    form_class = OrganizationForm
+
+class OrganizationUpdateView(ContactEntityCreateView):
+    model = Organization
+    entity_type = "org"
+    template_name = 'contacts/organization_form.html'
+    ajax_template_name = 'contacts/organization_form_inner.html'
+    form_class = OrganizationForm
+    
+class ContactCreateViewOld(LoginRequiredMixin, ActionMixin, CreateView):
+    model = Contact
+    action = "create" # required for ContactActionMixin 
+    form_action_url = "contact_create"  # required for ContactActionMixin 
+    form_class = ContactForm
      
     def get(self, request, *args, **kwargs):
         """
@@ -103,25 +403,16 @@ class ContactCreateView(LoginRequiredMixin, ContactActionMixin, CreateView):
         
         contact_form = ContactInfoForm(prefix="contact_info")
         org_form = OrganizationMemberFormSet(prefix="sw")
-        address_form = AddressFormSet(prefix="address")
-        address_form_helper = AddressFormSetHelper()
+        address_form = AddressForm(prefix="address")
         phone_form = WorkPhoneFormSet(prefix="phones")
-        # TODO: initial does not work - commented out for now
-#                                 ,initial=[
-#                                   {'phones-0-type': 'H',
-#                                    'phones-1-type': 'C',
-#                                    'phones-0-number': 'kjfbskb'}
-#                                   ])
-        phone_form_helper = PhoneFormSetHelper()
         
         return self.render_to_response(
             self.get_context_data(form=form,
                                   contact_form =contact_form,
                                   org_form = org_form,
                                   address_form=address_form,
-                                  address_form_helper=address_form_helper,
                                   phone_form=phone_form,
-                                  phone_form_helper=phone_form_helper))
+                                  ))
 
     # overrides ProcessFormView.post
     def post(self, request, *args, **kwargs):
@@ -130,7 +421,7 @@ class ContactCreateView(LoginRequiredMixin, ContactActionMixin, CreateView):
         form = self.get_form(form_class)
         contact_form = ContactInfoForm(request.POST, prefix="contact_info")
         org_form = OrganizationMemberFormSet(request.POST, prefix="sw")
-        address_form = AddressFormSet(request.POST, prefix="address")
+        address_form = AddressForm(request.POST, prefix="address")
         phone_form = WorkPhoneFormSet(request.POST, prefix="phones")
         
         print >>sys.stderr, '*** form data *** %s' % form.data
@@ -184,15 +475,17 @@ class ContactCreateView(LoginRequiredMixin, ContactActionMixin, CreateView):
         contact_info.content_object = self.object
         contact_info.save()
         
-        address_form.instance = contact_info
-        address_form.save()
+        address = address_form.save(commit=False)
+        address.contact_info = contact_info
+        address.save()
                
         phone_form.instance = contact_info
         phone_form.save()
         
-        org = org_form.save(commit=False)
-        org.social_worker = self.object
-        org.save()
+        if (contact_type == Contact.SOCIAL_WORKER):
+            org = org_form.save(commit=False)
+            org.social_worker = self.object
+            org.save()
 
         return HttpResponseRedirect(self.get_success_url())
     
@@ -203,13 +496,13 @@ class ContactCreateView(LoginRequiredMixin, ContactActionMixin, CreateView):
                                   contact_form =contact_form,
                                   org_form = org_form,
                                   address_form = address_form,
-                                  address_form_helper=AddressFormSetHelper(),
                                   phone_form=phone_form,
-                                  phone_form_helper=PhoneFormSetHelper)) 
+                                  )) 
     
-class ContactUpdateView(LoginRequiredMixin, ContactActionMixin, UpdateView):
+class ContactUpdateViewOld(LoginRequiredMixin, ContactActionMixin, UpdateView):
     model = Contact
     action = "update" # used for ContactActionMixin functionality
+    form_action_url = "contact_update"  # required for ContactActionMixin 
     form_class = ContactForm
         
     def get(self, request, *args, **kwargs):
@@ -223,17 +516,14 @@ class ContactUpdateView(LoginRequiredMixin, ContactActionMixin, UpdateView):
         
         org_form = OrganizationMemberFormSet(prefix="sw", instance=self.object.get_organization())
         
-        address_form = AddressFormSet(prefix="address", instance=contact_info)
-        address_form_helper = AddressFormSetHelper()
+        address_form = AddressForm(prefix="address", instance=contact_info.get_address())
         phone_form = WorkPhoneFormSet(prefix="phones", instance=contact_info)
-        phone_form_helper = PhoneFormSetHelper()
          
         return self.render_to_response(
             self.get_context_data(form=form,
                                   contact_form=contact_form,
                                   org_form=org_form,
                                   address_form=address_form,
-                                  address_form_helper=address_form_helper,
                                   phone_form=phone_form))
  
     def post(self, request, *args, **kwargs):
@@ -246,7 +536,7 @@ class ContactUpdateView(LoginRequiredMixin, ContactActionMixin, UpdateView):
         
         contact_info = self.object.get_contact_info()
         contact_form = ContactInfoForm(request.POST, prefix="contact_info", instance=contact_info)
-        address_form = AddressFormSet(request.POST, prefix="address", instance=contact_info)
+        address_form = AddressForm(request.POST, prefix="address", instance=contact_info.get_address())
         phone_form = WorkPhoneFormSet(request.POST, prefix="phones", instance=contact_info)
         
         print >>sys.stderr, '*** form data *** %s' % form.data
@@ -314,9 +604,8 @@ class ContactUpdateView(LoginRequiredMixin, ContactActionMixin, UpdateView):
             
         if address_form.has_changed():
             print >>sys.stderr, '*** save address_form ***' 
-            address_instances = address_form.save(commit=False)
-            for address in address_instances:
-                address.save()
+            address = address_form.save(commit=False)
+            address.save()
         
         if org_form.has_changed():
             print >>sys.stderr, '*** save org_form ***' 
@@ -337,7 +626,6 @@ class ContactUpdateView(LoginRequiredMixin, ContactActionMixin, UpdateView):
                                   contact_form =contact_form,
                                   org_form = org_form,
                                   address_form = address_form,
-                                  address_form_helper=AddressFormSetHelper(),
                                   phone_form=phone_form))
 
 class OrganizationListView(LoginRequiredMixin, DatatableView):    
@@ -359,8 +647,12 @@ class TestCreateView(LoginRequiredMixin, ContactActionMixin, CreateView):
     form_class = ContactForm
     template_name = "contacts/test_form.html"
     
-class OrganizationCreateView(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
+class OrganizationOldCreateView(LoginRequiredMixin, ActionMixin, AjaxTemplateMixin, CreateView):
     model = Organization
+    action = "create"
+    form_action_url = "org_create"
+    item_name = "Organization"
+    
     form_class = OrganizationForm
     template_name = 'contacts/organization_form.html'
     ajax_template_name = 'contacts/organization_form_inner.html'
@@ -377,7 +669,7 @@ class OrganizationCreateView(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
         form = self.get_form(form_class)
         
         contact_form = ContactInfoForm(prefix="org_contact_info")
-        address_form = AddressFormSet(prefix="org_address")
+        address_form = AddressForm(prefix="org_address")
         phone_form = WorkPhoneFormSet(prefix="org_phones")
         
         return self.render_to_response(
@@ -393,7 +685,7 @@ class OrganizationCreateView(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
         form = self.get_form(form_class)
         
         contact_form = ContactInfoForm(request.POST, prefix="org_contact_info")
-        address_form = AddressFormSet(request.POST, prefix="org_address")
+        address_form = AddressForm(request.POST, prefix="org_address")
         phone_form = WorkPhoneFormSet(request.POST, prefix="org_phones")
         
         print >>sys.stderr, '*** form data *** %s' % form.data
@@ -433,8 +725,9 @@ class OrganizationCreateView(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
         contact_info.content_object = self.object
         contact_info.save()
         
-        address_form.instance = contact_info
-        address_form.save()
+        address = address_form.save(commit=False)
+        address.contact_info = contact_info
+        address.save()
                
         phone_form.instance = contact_info
         phone_form.save()
@@ -456,10 +749,13 @@ class OrganizationCreateView(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
                                   org_address_form = address_form,
                                   org_phone_form=phone_form)) 
     
-class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
+class OrganizationUpdateViewOld(LoginRequiredMixin, ActionMixin, UpdateView):
     model = Organization
     form_class = OrganizationForm
-        
+    action = "update"
+    form_action_url = "org_update"
+    item_name = "Organization"
+    
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         form_class = self.get_form_class()
@@ -469,10 +765,8 @@ class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
         contact_info = self.object.get_contact_info()
         contact_form = ContactInfoForm(prefix="contact_info", instance=contact_info)
         
-        address_form = AddressFormSet(prefix="address", instance=contact_info)
-        address_form_helper = AddressFormSetHelper()
+        address_form = AddressForm(prefix="address", instance=contact_info.get_address())
         phone_form = WorkPhoneFormSet(prefix="phones", instance=contact_info)
-        phone_form_helper = PhoneFormSetHelper()
          
         return self.render_to_response(
             self.get_context_data(org_form=form,
@@ -488,7 +782,7 @@ class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
         
         contact_info = self.object.get_contact_info()
         contact_form = ContactInfoForm(request.POST, prefix="contact_info", instance=contact_info)
-        address_form = AddressFormSet(request.POST, prefix="address", instance=contact_info)
+        address_form = AddressForm(request.POST, prefix="address", instance=contact_info.get_address())
         phone_form = WorkPhoneFormSet(request.POST, prefix="phones", instance=contact_info)
         
         print >>sys.stderr, '*** form data *** %s' % form.data
@@ -543,9 +837,8 @@ class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
             
         if address_form.has_changed():
             print >>sys.stderr, '*** save address_form ***' 
-            address_instances = address_form.save(commit=False)
-            for address in address_instances:
-                address.save()
+            address = address_form.save(commit=False)
+            address.save()
         
          
         return HttpResponseRedirect(self.get_success_url())

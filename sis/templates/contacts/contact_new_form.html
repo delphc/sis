@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load staticfiles i18n %}
+{% load crispy_forms_tags %}
+{% load core_filters %}
+
+{% block css_extra %}
+<link href="{% static 'plugins/jquery-ui/jquery-ui.css' %}" rel="stylesheet">
+{% endblock css_extra %}
+
+{% block divmodal %}
+<div class="modal fade" id="form-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <!--
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          
+        </div>
+       -->
+        <div id="form-modal-body" class="modal-body">
+          
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+     </div>
+   </div>
+</div>
+{% endblock divmodal %}
+
+{% block breadcrumb %}
+	<li><a href="{% url 'contact_list' %}">Contacts</a></li>
+	<li><a href="#">{{ form.helper.form_title }}</a></li>	       				
+{% endblock breadcrumb %}
+{% block content %}	      			  
+
+{% include 'contacts/contact_form_inner.html' %}
+
+{% endblock content %}
+
+{% block javascript_extra %}
+
+<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
+<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+   $(function() {
+    
+        {% include "contacts/_contact_form_js.html" %}
+
+        var formAjaxSubmit = function(form, modal) {
+                $(form).submit(function (e) {
+                    e.preventDefault();
+                    $.ajax({
+                        type: $(this).attr('method'),
+                        url: $(this).attr('action'),
+                        data: $(this).serialize(),
+                        success: function (xhr, ajaxOptions, thrownError) {
+                            alert(xhr.pk);
+                            if ( $(xhr).find('.has-error').length > 0 ) {
+                                $(modal).find('.modal-body').html(xhr);
+                                formAjaxSubmit(form, modal);
+                            } else {
+                                $(modal).modal('toggle');
+                                var newOrg = xhr;
+                                var newSelect = $('#id_sw-organization');
+                                newSelect.append('<option value="' + newOrg.pk + '" >' + newOrg.name + '</option>');
+                                $('#id_sw-organization').replaceWith(newSelect);
+                                $("#id_sw-organization option[value='" + newOrg.pk + "']").attr('selected', 'selected');
+             
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                        }
+                    });
+                });
+            }
+        $('#new-org-button').click(function() {
+            $('#form-modal-body').load('/contacts/org/create', function () {
+                $('#form-modal').modal('toggle');
+                formAjaxSubmit('#org-create-form', '#form-modal');
+            });
+        });
+    });
+});
+
+</script>
+{% endblock javascript_extra %}

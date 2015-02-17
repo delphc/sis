@@ -67,7 +67,7 @@
   </tr>
     <tr>
     <td>{% trans 'Referring Contact' %}</td>
-    <td><p>{{ referral.contact.get_full_name|linebreaks }}
+    <td><p>{{ referral.contact.full_name|linebreaks }}
     	{{ referral.contact.get_category_display }}: {{ referral.contact.type }}
     	{% if referral.contact.organization %} {{ referral.contact.organization }} {% endif %}
     	<br>

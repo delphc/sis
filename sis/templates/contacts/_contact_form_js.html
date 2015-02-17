@@ -1,0 +1,29 @@
+        {% include "contacts/_contact_info_js.html" with entity_type="contact" phones_form_prefix="contact_phones" %}
+        
+        {% include "contacts/_contact_info_js.html" with entity_type="org" phones_form_prefix="org_phones" %}
+        
+        $('.org_row').formset({
+            prefix: '{{ org_form.prefix }}',
+            formCssClass: 'dynamic-formsetorg',
+            //autoAddLinks: false               // do not add add and delete links to the formsets
+        });
+        
+        $('#id_contact_form-contact_type').change(function(){
+          var data=$(this).val();
+          if (data === 'N') { // for 'next of kin' category
+            $('#form-address').show();
+            $('#form-sw').hide();
+            
+          } else { // W for 'case worker' category
+            $('#form-address').hide();
+            $('#form-sw').show();
+          }
+                  
+        });
+        {% if object == None %}
+            
+            $('#id_contact_form-contact_type').val('{{form.contact_type.value }}').trigger('change');
+            
+        {% else %}
+            $('#id_contact_form-contact_type').val('{{ object.contact_type.0 }}').trigger('change');
+        {% endif %}

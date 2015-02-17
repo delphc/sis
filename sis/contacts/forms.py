@@ -125,9 +125,10 @@ class ContactInfoForm(CoreModelForm):
             self.helper = ContactInfoCreateFormHelper(form=self)
     
    
-class OrganizationMemberForm(forms.ModelForm):
+class OrganizationMemberForm(CoreModelForm):
     class Meta:
         model = OrganizationMember
+        autocomplete_fields = ('organization')
         fields = ['organization', 'position']
         localized_fields = ('__all__')
         
@@ -349,7 +350,7 @@ class WorkPhoneInlineFormSet(CoreBaseInlineFormSet):
         super(WorkPhoneInlineFormSet, self).__init__( data, files, instance,
                  save_as_new, prefix, queryset, **kwargs)
 
-WorkPhoneFormSet = inlineformset_factory(ContactInfo, Phone, form=PhoneForm, formset=WorkPhoneInlineFormSet, can_delete=True,
+WorkPhoneFormSet = inlineformset_factory(ContactInfo, Phone, form=PhoneEditForm, formset=WorkPhoneInlineFormSet, can_delete=True,
                                      extra=0, min_num=1, max_num=3, validate_min=True, validate_max=True,
                                      fields=( 'type', 'number', 'extension', 'info'))
   

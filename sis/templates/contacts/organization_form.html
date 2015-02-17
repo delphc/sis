@@ -20,28 +20,11 @@
 <script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
 <script type="text/javascript">
 $(document).ready(function() {
-	//$('#id_cdif_exd').removeAttr('class');
-	//$('#id_cdif_exd').removeClass('checkboxinput');
-	//$('input[type="button"]').
    $(function() {
-   	
-    //$( "#radio_id_gender" ).buttonset();
-		
-    	$('.div-client-address').formset({
-        	prefix: '{{ address_form.prefix }}',
-			formCssClass: 'dynamic-formsetaddress',
-			//autoAddLinks: false               // do not add add and delete links to the formsets
-		});
-		$('.phone_row').formset({
-        	prefix: '{{ phone_form.prefix }}',
-			formCssClass: 'dynamic-formsetphone',
-			//autoAddLinks: false               // do not add add and delete links to the formsets
-		});
+
+        {% include "contacts/_contact_form_js.html" %}  
 		
 	});
-	
-	 
-   //DashboardTabChecker();
 });
 
 

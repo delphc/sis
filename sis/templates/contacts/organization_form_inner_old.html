@@ -1,0 +1,64 @@
+{% load staticfiles i18n %}
+{% load crispy_forms_tags %}
+{% load core_filters %}
+
+
+
+ 			  
+
+<form method="post" id="org-create-form" action="{{ view.form_action }}">{% csrf_token %}					
+	    				
+	<div class="row">
+	    <div class="col-sm-12">
+	        <div class="container-fluid">
+	    		<h4 class="pageHeader">{{ org_form.helper.form_title }}</h4>
+	    		
+	    		<div id="form-main" class="well">
+   					{% crispy org_form %}
+   					{% crispy org_contact_form %}
+	    		</div>
+		   		
+   				<div id="form-address" class="panel panel-default">
+   					<div class="panel-heading">{%trans 'Address' %}</div>
+  					<div class="panel-body">
+  					    {% crispy org_address_form %}
+				    
+   					</div>  
+   				</div>
+   				<div id="form-phone" class="panel panel-default">
+   					<div class="panel-heading">{%trans 'Phone' %}</div>
+  					<div class="panel-body">
+  						{% for form in org_phone_form.forms %}
+  						<div class="inline phone_row row">
+  							
+  							<div class="col-xs-2">
+  								{% if form.instance.pk %}
+  								{{ form.id }}
+  								{{ form.DELETE }}
+  								{% endif %}
+  								{{ form.type | as_crispy_field }}
+  							</div>
+  							<div class="col-xs-3">
+  								{{ form.number | as_crispy_field }}
+  							</div>
+  							<div class="col-xs-2">
+  								{{ form.extension | as_crispy_field }}
+  							</div>
+  							<div class="col-xs-4">
+  								{{ form.info | as_crispy_field }}
+  							</div>
+   						</div>
+   						{% endfor %}
+				        
+				   		{{ org_phone_form.management_form }}
+   					</div>
+   				</div>
+   				<div class="form-actions">
+     				<input type="submit" name="submit" value="Save" class="btn btn-primary" id="submit-org">
+    			</div>
+			</div>
+		</div>
+	</div>
+</form>
+
+

@@ -6,6 +6,8 @@
 {% load verbose_names %}
 {% load core_filters %}
 
+
+
 {% block tab-content %}
 <div id="tab-comm" class="tab-pane active">
 	    				
@@ -41,7 +43,7 @@
   </tr>
   <tr>
     <td>{% trans 'Referring Contact' %}</td>
-    <td><p>{{ ref_contact.get_full_name|linebreaks }}
+    <td><p>{{ ref_contact.full_name|linebreaks }}
     	{% if ref_contact.get_organization %} 
     	   {{ ref_contact.get_organization.position }} - {{ ref_contact.get_organization.organization }} 
     	{% endif %}

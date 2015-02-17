@@ -31,13 +31,18 @@ class ContactEntity(TimeStampedModel):
     
 class ContactInfo(models.Model):
     
-    limit = models.Q(app_label = 'contacts', model = 'ContactEntity') # | models.Q(app_label = 'contacts', model = 'Organization') | models.Q(app_label = 'clients', model = 'Client')
+    limit = models.Q(app_label = 'contacts', model = 'ContactEntity')
           
     content_type = models.ForeignKey(ContentType, limit_choices_to = limit)
     object_id = models.PositiveIntegerField(db_index=True)
     content_object = GenericForeignKey()
-     
+    
+    # to enfore one-to-one relation
+    class Meta:
+        unique_together   = ('content_type', 'object_id')
+        
     #owner = models.OneToOneField(ContactEntity)
+    
     email_address = models.EmailField(blank=True, default='')
 
     def __unicode__(self):
@@ -48,6 +53,8 @@ class ContactInfo(models.Model):
     
     def get_phones(self):
         return self.phone_set.all()
+ 
+        
         
 class Address(models.Model):
     history = AuditlogHistoryField()
@@ -75,7 +82,12 @@ class Address(models.Model):
         return self.street
     
     def get_line_2(self):
-        return "Apt. "+self.apt+", Entry code. "+self.entry_code
+        if self.entry_code:
+            line = _("Apt. %s (Entry code: %s)") % (self.apt, self.entry_code)
+        else:
+            line = _("Apt. %s (No entry code)") % (self.apt)
+            
+        return line
     
     def get_line_3(self):
         return self.city+", "+self.prov+", "+self.zip_code
@@ -84,7 +96,6 @@ class Address(models.Model):
 class Phone(models.Model):
     history = AuditlogHistoryField()
 
-    
     HOME='H'
     CELL='C'
     WORK='W'
@@ -111,9 +122,6 @@ class Organization(ContactEntity):
     
     name = models.CharField(max_length=100)
     contact_info = GenericRelation(ContactInfo)
-#     phones = GenericRelation(Phone, related_query_name='phones')
-#     address = GenericRelation(Address, related_query_name='address')
-#     
     
     def __unicode__(self):
         return self.name
@@ -121,11 +129,7 @@ class Organization(ContactEntity):
     def get_absolute_url(self):
         return reverse_lazy('org_update', kwargs={'pk':str(self.id)})
     
-    def get_contact_info(self):
-        if self.contact_info.all():
-            return self.contact_info.all()[0]
-        else:
-            return None 
+    
         
 
 class Contact(ContactEntity):
@@ -149,18 +153,16 @@ class Contact(ContactEntity):
     
     work = models.ManyToManyField(Organization, through='OrganizationMember')
     
-    
-    def get_full_name(self):  
+    @property
+    def full_name(self):  
         return self.first_name + " " + self.last_name
     
     def __unicode__(self):
-        return self.get_full_name()
+        return self.full_name
     
     def get_absolute_url(self):
         return reverse_lazy('contact_update', kwargs={'pk':str(self.id)})
-
-    def get_contact_info(self):
-        return self.contact_info.all()[0]
+    
     
     def get_organization(self):
         """

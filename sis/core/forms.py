@@ -22,7 +22,6 @@ from crispy_forms.layout import LayoutObject, BaseInput, TEMPLATE_PACK
 
 from models import PendedForm
 
-
 class CoreModelForm(autocomplete_light.ModelForm):
     """
         edit attribute indicates whether the form is used for update (edit=True) or creation (edit=False)

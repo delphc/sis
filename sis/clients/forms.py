@@ -31,6 +31,8 @@ from deliveries.models import Route
 from core.forms import PendForm, FormContainer, Cancel, CoreModelForm
 from contacts.forms import ContactInfoForm, AddressFormSet, PhoneFormSet
 
+import selectable.forms as selectable
+from contacts.lookups import ContactLookup
     
 # class ClientLookupForm(autocomplete_light.ModelForm):
 #     class Meta:
@@ -394,18 +396,29 @@ class ReferralEditFormHelper(FormHelper):
         
         cancel_url = "{% url 'client_profile_referral' object.pk %}"
         
+        html_contact = '<div id="div_id_ref-contact-vo" class="form-group">'
+        html_contact += '<label class="control-label col-lg-3 requiredField"> Contact</label>'
+        html_contact += '<div class="form-readonly-field col-lg-9">'
+        html_contact += '<label class="text-info"> Laura Smith</label>'
+        html_contact += '</div>'
+        html_contact += '</div>'
+        
+    
+
         self.form_tag = True
         self.form_method = 'post'
         self.form_action = reverse_lazy('client_profile_referral_edit', kwargs={'pk':str(self.form.instance.client.id)})
         self.form_class = 'form-horizontal'
         self.label_class = 'col-lg-3'
-        self.field_class = 'col-lg-8'
-        self.layout = Layout(MultiWidgetField('ref_date', attrs=({'style': 'width: 33%; display: inline-block; class:col-xs-1'})),                       
+        self.field_class = 'col-lg-9'
+        self.layout = Layout(MultiWidgetField('ref_date', attrs=({'style': 'width: 33%; display: inline-block;'})),                       
                              Div(
-                                 Field('reasons', template="clients/_client_ref_reasons_checkboxes_edit.html"),
+                                 Field('reasons', template="clients/_client_ref_reasons_checkboxes.html"),
                                  css_class="container-fluid"),
                              'notes', 
-                             'contact',
+                             # referring contact cannot be modified
+                             HTML(html_contact),
+                             'contact', 
                              FormActions(
                                          Submit('save', 'Save changes'),
                                          HTML('<a class="btn btn-default" href="'+cancel_url+'" %}">'+_("Cancel")+"</a>"),
@@ -418,10 +431,13 @@ class ReferralForm(CoreModelForm):
         model = Referral
         fields = ['ref_date', 'reasons', 'notes', 'contact']
         autocomplete_fields = ('contact')
+        
         this_year = datetime.date.today().year
         widgets = {
-            'ref_date' : SelectDateWidget(years=range(this_year - 10, this_year))
+            'ref_date' : SelectDateWidget(years=range(this_year - 10, this_year)),
+            #'contact': selectable.AutoComboboxSelectWidget(lookup_class=ContactLookup)
         }
+        
 #         reasonsAutonomyLoss = RefReasonsModelChoiceField(
 #                                     queryset=ReferralReason.objects.filter(category=ReferralReason.AUTONOMY_LOSS).values('id', 'reason_en', 'category'), 
 #                                     widget = forms.CheckboxSelectMultiple)
@@ -444,8 +460,10 @@ class ReferralForm(CoreModelForm):
         self.fields['reasons'] = RefReasonsModelChoiceField(
                                   queryset=ReferralReason.objects.all(), #.values('id', 'reason_en', 'category'),
                                   widget = forms.CheckboxSelectMultiple)
+        
         if self.edit:
             self.helper = ReferralEditFormHelper(form=self)
+
         else:
             self.helper = ReferralCreateFormHelper(form=self, **{'form_id': 'ref-form', 'form_title': _('Referral'), 'show_form_title': False})
     
