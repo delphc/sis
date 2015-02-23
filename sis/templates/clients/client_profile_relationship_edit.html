@@ -10,7 +10,7 @@
 <h4><span>{{ headline }}</h4>
 </p>
 
-{% crispy ref_form %}
+{% crispy form %}
 
 </div>
 
@@ -19,8 +19,7 @@
 {% block javascript_extra_tab %}
 <script>
 $(document).ready(function() {
-    $('#div_id_ref-contact').hide();
-
+    {% include 'clients/_client_relationships_js.html' with rel_form=None %}
     {% include 'core/_divmodal_js.html' with button_id='#new-contact-button' load_url=contact_create_url form_id='#contact-create-form' select_id='#' %}
 });
 </script>

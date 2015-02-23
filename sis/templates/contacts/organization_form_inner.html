@@ -3,9 +3,6 @@
 {% load core_filters %}
 
 
-
- 			  
-
 <form method="post" id="org-create-form" action="{{ view.form_action }}">{% csrf_token %}					
 	    				
 	<div class="row">
@@ -26,5 +23,11 @@
 		</div>
 	</div>
 </form>
-
+<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
+<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
+<script>
+$(document).ready(function() {
+{% include 'contacts/_contact_form_js.html' %}
+});
+</script>
 

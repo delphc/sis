@@ -117,6 +117,10 @@ class Client(ContactEntity):
     def __unicode__(self): # Python 3: def __str__(self):
         return self.get_full_name()
     
+    # required for ContactEntity interface
+    def get_display_name(self):
+        return self.get_full_name()
+    
     def get_absolute_url(self):
         if self.status == self.PENDING:
             return reverse_lazy('client_setup', kwargs={'pk':str(self.id)})
@@ -168,7 +172,7 @@ class Client(ContactEntity):
      
 class Referral(models.Model):
     client = models.ForeignKey(Client)
-    contact = models.ForeignKey(Contact)
+    contact = models.ForeignKey(Contact, verbose_name=_("Referred by"))
     ref_date = models.DateField(_("Referral date"))
     reasons = models.ManyToManyField( ReferralReason, _("Reasons for referral"))
     notes = models.TextField(_("Referral notes"), max_length=250, blank=True, default='')
@@ -181,12 +185,18 @@ class RelationType(models.Model):
     type_fr = models.CharField(max_length=20)
     
     def __unicode__(self):
+        lg = translation.get_language()
+        
+        if lg == "fr":
+            return self.type_fr
         return self.type_en
+    
     
 class Relationship(TimeStampedModel):
     client = models.ForeignKey(Client)
     contact = models.ForeignKey(Contact)
-    type = models.ForeignKey(RelationType, blank=True, null=True)
+    contact_type = contact_type = models.CharField(_("Contact type"), max_length=1, choices=Contact.CONTACT_TYPE_CODES, default=Contact.NEXT_OF_KIN)
+    rel_type = models.ForeignKey(RelationType, verbose_name=_("Relation type"), blank=True, null=True)
 
     emergency = models.BooleanField(_('Emergency contact'), default=False)
     follow_up = models.BooleanField(_('Follow-up'), default=False)

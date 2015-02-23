@@ -1,0 +1,87 @@
+{% load staticfiles %}
+{% load i18n %}
+
+	$('#id_{{ order_form.prefix }}-type').change(function(){
+          var data=$(this).val();
+          alert(data);
+          if (data === 'O') { // for 'next of kin' category
+            $('#div_id_{{ order_form.prefix }}-days').show();
+            
+            
+          } else { // W for 'case worker' category
+            $('#div_id_{{ order_form.prefix }}-days').hide();
+            
+          }
+                  
+        });
+    
+    $('input[name="{{ order_form.prefix }}-meal_defaults_type"]:radio').change(function(){
+          var data = $('input[name="{{ order_form.prefix }}-meal_defaults_type"]:checked').val();
+          alert(data);
+          if (data === 'D') { // for day-specific meal defaults
+            $('.selected-day').show();
+            $('.tr-everyday').hide();
+            
+          } else { // W for 'case worker' category
+            $('.selected-day').hide();
+            $('.tr-everyday').show();
+            
+          }
+                  
+        });
+        
+    $('input[name="{{ order_form.prefix }}-meal_defaults_type"][value="A"]').trigger('change');
+        
+    // when user selects a button for a service day,
+    // it checks/unchecks the corresponding hidden check box,
+    // and (if meal_defaults_type is day-specific) 
+    // it shows/hides the corresponding form for entering meal defaults
+    
+    
+	$('.btn-order-day').on('click', function () {
+        $(this).toggleClass('btn-success').toggleClass('btn-default');
+        
+        var hidden_field_id = '#'+$(this).val();
+        var meal_defaults_tr = '#tr_'+$(this).val();
+        
+        var meal_defaults_type = $('input[name="{{ order_form.prefix }}-meal_defaults_type"]:checked').val();
+        
+        // show meal defaults form for selected day only if defaults are set per day
+        var meal_defaults_per_day = (meal_defaults_type === 'D');
+        
+        
+        if ($(hidden_field_id).prop('checked')) {
+            $(hidden_field_id).prop("checked", false);
+            $(meal_defaults_tr).toggleClass('selected-day');
+            if (meal_defaults_per_day)
+            	$(meal_defaults_tr).hide();
+           }
+        else {
+            $(hidden_field_id).prop("checked", true);
+            $(meal_defaults_tr).toggleClass('selected-day');
+            if (meal_defaults_per_day)
+            	$(meal_defaults_tr).show();
+        }
+            
+    })
+    
+    // change of meal_defaults_type
+    // same for every day : hide tr for active days + show tr for inactive day (i.e. tr for 'everyday')
+    // day-specific : show tr for active days (if type = ongoing : show only tr corresponding to selected days)
+    //					+ hide tr for inactive day
+    
+    {% for day in meal_service_days.all %}
+        $(".meal_row_meals_{{day.position}}").formset({
+            prefix: 'meals_{{day.position}}',
+            addText: '<i class="fa fa-plus-circle"></i> {% trans "Add meal" %}',
+            deleteText: '<i class="fa fa-remove"> {% trans "Remove meal" %}'
+        });
+        $(".side_row_mealsides_{{day.position}}").formset({
+            prefix: 'mealsides_{{day.position}}',
+            addText: '<i class="fa fa-plus-circle"></i> {% trans "Add side" %}',
+            deleteText: '<i class="fa fa-remove"> {% trans "Remove side" %}'
+        });
+    {% endfor %}
+    
+    
+        

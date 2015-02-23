@@ -2,10 +2,16 @@
 {% load i18n %}
 {% load staticfiles %}
 {% load crispy_forms_tags %}
+{% load core_filters %}
 
 {% block css_extra %}
 <link rel="stylesheet" type="text/css" href="{% static 'plugins/jquery-dateentry/jquery.dateentry.css' %}"> 
 {% endblock css_extra %}
+
+{% block divmodal %}
+{% include 'core/_divmodal.html' %}
+{% endblock divmodal %}
+
 
 {% block breadcrumb %}
 	<li><a href="#">Clients</a></li>
@@ -55,7 +61,7 @@
     <div class="panel-heading" role="tab" id="heading2">
       <h4 class="panel-title">
         <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse2" aria-expanded="false" aria-controls="collapse2">
-          #2 - Contact
+          #2 - {{ contact_form.helper.form_title }}
           {% if invalid_forms %}
             {% if contact_form.errors or address_form.errors or phones_form.errors %}<i class="fa fa-exclamation-triangle"></i>
             {% else %}<i class="fa fa-check"></i>
@@ -89,7 +95,7 @@
     <div class="panel-heading" role="tab" id="heading3">
       <h4 class="panel-title">
         <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse3" aria-expanded="false" aria-controls="collapse2">
-          #3 - Communication
+          #3 - {{ comm_form.helper.form_title }}
           {% if invalid_forms %}
             {% if comm_form.errors %}<i class="fa fa-exclamation-triangle"></i>
             {% else %}<i class="fa fa-check"></i>
@@ -110,7 +116,7 @@
     <div class="panel-heading" role="tab" id="heading4">
       <h4 class="panel-title">
         <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse4" aria-expanded="false" aria-controls="collapse4">
-          #4 - Referral
+          #4 - {{ ref_form.helper.form_title }}
           {% if invalid_forms %}
             {% if ref_form.errors %}<i class="fa fa-exclamation-triangle"></i>
             {% else %}<i class="fa fa-check"></i>
@@ -123,6 +129,101 @@
     <div id="collapse4" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading4">
       <div class="panel-body">
       	{% crispy ref_form %}
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="bg-primary">
+    <div class="panel-heading" role="tab" id="heading-rel">
+      <h4 class="panel-title">
+        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse-rel" aria-expanded="false" aria-controls="collapse-rel">
+          #5 - {% trans 'Contacts' %}
+          {% if invalid_forms %}
+            {% if rel_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+            {% else %}<i class="fa fa-check"></i>
+            {%endif%}
+          {%endif%}
+        </a>
+      </h4>
+     </div>
+    </div>
+    <div id="collapse-rel" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-rel">
+      <div class="panel-body">
+          
+        {{ rel_form.management_form }}
+        {% for form in rel_form %}
+            <div class="well">
+            {% crispy form %}
+            </div>
+        {% endfor %}
+        
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="bg-primary">
+    <div class="panel-heading" role="tab" id="heading-meal">
+      <h4 class="panel-title">
+        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse-meal" aria-expanded="false" aria-controls="collapse-meal">
+          #6 - {{ order_form.helper.form_title }}
+          {% if invalid_forms %}
+            {% if order_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+            {% else %}<i class="fa fa-check"></i>
+            {%endif%}
+          {%endif%}
+        </a>
+      </h4>
+     </div>
+    </div>
+    <div id="collapse-meal" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-meal">
+      <div class="panel-body">
+        {% crispy order_form %}
+        
+        <table class="table table-user-information">
+        <tbody>
+            {% for day in meal_service_days.all %}
+            <tr id="tr_id_order-days_{{ day.pk }}" 
+                class="{%if day.active%}tr-active-day{%else%}tr-everyday{%endif%}"
+                style="display: none">
+                <td class="col-xs-1">
+                    {{ day.name_en }}
+                </td>
+                <td class="col-xs-11">
+                    <div class="container">
+                        <div class="row">
+                            
+                        {% with day.position as day_pos %}
+                        <div class="col-xs-6">
+                            {% trans 'Select meal defaults' %}
+                            {% with meals_form|get_dict_item:day_pos as day_meals_form %}
+                                {{ day_meals_form.management_form }}
+                                {% for form in day_meals_form %}
+                                    
+                                    {% crispy form %}
+                                    
+                                {% endfor %}
+                                
+                            {% endwith %}
+                        </div>
+                        <div class="col-xs-6">
+                            {% trans 'Select meal sides' %}
+                            {% with mealsides_form|get_dict_item:day_pos as day_sides_form %}
+                                {{ day_sides_form.management_form }}
+                                {% for form in day_sides_form %}
+                                    
+                                    {% crispy form %}
+                                    
+                                {% endfor %}
+                                
+                            {% endwith %}
+                        </div>
+                        {% endwith %}
+                        </div>
+                    </div>
+                </td>
+            {% endfor %}
+        </table>
+        
       </div>
     </div>
   </div>
@@ -145,36 +246,31 @@
 <script>
 	/* Project specific Javascript goes here. */
 $(document).ready(function() {
-	//$( "#tab_links" ).tabs();
-	 
 
-//    $( "#show-comm-form-lines" ).click(function() {
-//     $( ".comm-form-line" ).show("blind");
-//    });
-// 	$( "#cancel-comm-form" ).click(function() {
-//     $( ".comm-form-line" ).hide();
-//    });
-//   $("#id_id-birth_date").dateEntry({
-//   		dateFormat: 'dny ', 
-//   		defaultDate: '12/25/2014', 
-//   		initialField: 0
-//   	});
    $("#id_ref-ref_date").dateEntry({
    		dateFormat: 'dny ',
    		initialField: 0});
    
-   $(".phone_row").formset({
-           // prefix: '{{ phone_form.prefix }}'
-        });
+//   $(".phone_row").formset({
+//           // prefix: '{{ phone_form.prefix }}'
+//        });
    
 	//$('a[data-parent="#accordion"]').click(function(){
 	//	alert('clicked!');
 	//})
 
+    {% include 'contacts/_contact_info_js.html' with entity_type="client" phones_form_prefix="phones" %}
+        
 
-{% block javascript_extra_tab %}
-{% endblock javascript_extra_tab %}
+    {% include 'clients/_client_relationships_js.html' with rel_form=rel_form %}
+    
+    {% include 'core/_divmodal_js.html' with button_id='#new-contact-button' load_url=contact_create_url form_id='#contact-create-form' select_id='#' %}
+    
+    {% include 'orders/_meal_defaults_js.html' %}
+    
 });
 
 </script>
+{% block javascript_extra_tab %}
+{% endblock javascript_extra_tab %}
 {% endblock javascript_extra %}

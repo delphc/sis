@@ -23,9 +23,19 @@ class ContactEntity(TimeStampedModel):
     class Meta:
         abstract = True
 
+    def get_display_name(self):
+        msg = "{0} is missing get_display_name.".format(self.__class__)
+        raise NotImplementedError(msg)
+    
     def get_contact_info(self):
         if self.contact_info.count():
             return self.contact_info.all()[0]
+        else:
+            return None
+        
+    def get_phones(self):
+        if self.get_contact_info():
+            return self.get_contact_info().get_phones()
         else:
             return None
     
@@ -129,7 +139,9 @@ class Organization(ContactEntity):
     def get_absolute_url(self):
         return reverse_lazy('org_update', kwargs={'pk':str(self.id)})
     
-    
+    # required for ContactEntity interface
+    def get_display_name(self):
+        return self.name
         
 
 class Contact(ContactEntity):
@@ -152,6 +164,10 @@ class Contact(ContactEntity):
     contact_info = GenericRelation(ContactInfo)
     
     work = models.ManyToManyField(Organization, through='OrganizationMember')
+    
+    # required for ContactEntity interface
+    def get_display_name(self):
+        return self.full_name
     
     @property
     def full_name(self):  

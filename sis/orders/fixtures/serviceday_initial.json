@@ -1,0 +1,106 @@
+[
+{
+	"model": "orders.serviceday",
+	"pk": 1,
+    "fields": {
+    	"slug": "everyday_meal",
+        "name_en": "Everyday",
+        "name_fr": "Tous les jours",
+        "service_type" : "M",
+        "active" : "0",
+        "position" : "0"
+    }
+},
+{
+	"model": "orders.serviceday",
+	"pk": 2,
+    "fields": {
+    	"slug": "monday_meal",
+        "name_en": "Monday",
+        "name_fr": "Lundi",
+        "service_type" : "M",
+        "active" : "1",
+        "position" : "1"
+    }
+},
+
+{
+	"model": "orders.serviceday",
+	"pk": 3,
+    "fields": {
+    	"slug": "tuesday_meal",
+        "name_en": "Tuesday",
+        "name_fr": "Mardi",
+        "service_type" : "M",
+        "active" : "1",
+        "position" : "2"
+    }
+},
+
+{
+	"model": "orders.serviceday",
+	"pk": 4,
+    "fields": {
+    	"slug": "wednesday_meal",
+        "name_en": "Wednesday",
+        "name_fr": "Mercredi",
+        "service_type" : "M",
+        "active" : "1",
+        "position" : "3"
+    }
+},
+
+{
+	"model": "orders.serviceday",
+	"pk": 5,
+    "fields": {
+    	"slug": "thursday_meal",
+        "name_en": "Thursday",
+        "name_fr": "Jeudi",
+        "service_type" : "M",
+        "active" : "0",
+        "position" : "4"
+    }
+},
+
+{
+	"model": "orders.serviceday",
+	"pk": 6,
+    "fields": {
+    	"slug": "friday_meal",
+        "name_en": "Friday",
+        "name_fr": "Vendredi",
+        "service_type" : "M",
+        "active" : "1",
+        "position" : "5"
+    }
+},
+
+{
+	"model": "orders.serviceday",
+	"pk": 7,
+    "fields": {
+    	"slug": "saturday_meal",
+        "name_en": "Saturday",
+        "name_fr": "Samedi",
+        "service_type" : "M",
+        "active" : "1",
+        "position" : "10"
+    }
+},
+
+{
+	"model": "orders.serviceday",
+	"pk": 8,
+    "fields": {
+    	"slug": "sunday_meal",
+        "name_en": "Sunday",
+        "name_fr": "Dimanche",
+        "service_type" : "M",
+        "active" : "0",
+        "position" : "15"
+    }
+    
+}
+
+]

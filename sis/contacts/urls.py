@@ -45,8 +45,8 @@ urlpatterns = patterns('contacts.views',
         view=OrganizationUpdateView.as_view(),
         name='org_update'
     ),
-    url(r'^create/$', autocomplete_light.CreateView.as_view(
-        model=Contact, form_class=ContactForm),
-        name='add_another_contact_create'),
+#     url(r'^create/$', autocomplete_light.CreateView.as_view(
+#         model=Contact, form_class=ContactForm),
+#         name='add_another_contact_create'),
 
 )

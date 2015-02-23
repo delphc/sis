@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from clients.models import Client, ReferralReason, Referral, Relationship
+from clients.models import Client, ReferralReason, Referral, RelationType, Relationship
 from food.models import FoodCategory, FoodIngredient
 from contacts.admin import ContactInfoInline
 
@@ -18,4 +18,5 @@ admin.site.register(FoodIngredient)
 admin.site.register(ReferralReason)
 admin.site.register(Referral)
 
+admin.site.register(RelationType)
 admin.site.register(Relationship)

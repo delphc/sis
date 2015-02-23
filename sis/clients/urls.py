@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from django.conf.urls import patterns, url
 
-from clients.views import ClientListView,  ClientCreateView, ClientSetupView, ClientUpdateView, ClientProfileView, ClientReferralView, ClientOrderView
-from clients.views import ClientProfileIdentificationView, ClientProfileContactView, ClientProfileCommunicationView, ClientProfileReferralView
+from clients.views import ClientListView,  ClientCreateView, ClientSetupView, ClientUpdateView, ClientProfileView, ClientReferralView
+from clients.views import ClientProfileIdentificationView, ClientProfileContactView, ClientProfileCommunicationView, ClientProfileReferralView, ClientProfileRelationshipView
 from clients.views import ClientProfileEditIdentificationView, ClientProfileEditContactView, ClientProfileEditCommunicationView, ClientProfileEditReferralView
-
+from clients.views import ClientRelationshipListView, RelationshipCreateView, RelationshipEditView, RelationshipDeleteView
 
 urlpatterns = patterns('clients.views',
     url(
@@ -55,6 +55,31 @@ urlpatterns = patterns('clients.views',
         name='client_profile_referral'
     ),
     url(
+        regex=r'^profile/rel/(?P<pk>\d+)$',
+        view=ClientProfileRelationshipView.as_view(),
+        name='client_profile_relationship'
+    ),
+    url(
+        regex=r'^(?P<pk>\d+)/rel$',
+        view=ClientRelationshipListView.as_view(),
+        name='client_relationship_list'
+    ),
+    url(
+        regex=r'^rel/(?P<pk>\d+)/create$', # pk of client
+        view=RelationshipCreateView.as_view(),
+        name='relationship_create'
+    ),                   
+    url(
+        regex=r'^rel/(?P<pk>\d+)/edit$', # pk of relationship
+        view=RelationshipEditView.as_view(),
+        name='relationship_edit'
+    ), 
+    url(
+        regex=r'^rel/(?P<pk>\d+)/delete$', # pk of relationship
+        view=RelationshipDeleteView.as_view(),
+        name='relationship_delete'
+    ),                
+    url(
         regex=r'^profile/id/(?P<pk>\d+)/edit$',
         view=ClientProfileEditIdentificationView.as_view(),
         name='client_profile_identification_edit'
@@ -84,11 +109,12 @@ urlpatterns = patterns('clients.views',
         view=ClientReferralView.as_view(),
         name='client_profile_referral_o'
     ),
-    url(
-        regex=r'^profile/(?P<pk>\d+)/order$',
-        view=ClientOrderView.as_view(),
-        name='client_profile_order_o'
-    ),
+    
+#     url(
+#         regex=r'^profile/(?P<pk>\d+)/order$',
+#         view=ClientOrderView.as_view(),
+#         name='client_profile_order_o'
+#     ),
     url(
         regex=r'^update/(?P<pk>\d+)$',
         view=ClientUpdateView.as_view(),

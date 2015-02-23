@@ -1,0 +1,36 @@
+{% load i18n %}
+
+{% if rel_form %}
+$('.relation_row').formset({
+            prefix: '{{ rel_form.prefix }}',
+            formCssClass: 'dynamic-formsetorg',
+            addText: '<i class="fa fa-plus-circle"></i> {% trans "Add relationship" %}',
+            deleteText: '<i class="fa fa-remove"> {% trans "Remove relationship" %}'
+        });
+{% endif %}
+
+$('body').on('change', '.relation_row select[name$=contact_type]', function() {
+        var selectElement = $(this);
+        var relationTypeSelectElement = $('#' + $(this).attr('id').replace('contact_type', 'rel_type'));
+        var relationTypeWidgetElement = relationTypeSelectElement.parents('.autocomplete-light-widget');
+
+        // When the country select changes
+        value = $(this).val();
+
+        if (value) {
+            // If value is contains something, add it to autocomplete.data
+            relationTypeWidgetElement.yourlabsWidget().autocomplete.data = {
+                'contact_type': value[0],
+            };
+        } else {
+            // If value is empty, empty autocomplete.data
+            relationTypeWidgetElement.yourlabsWidget().autocomplete.data = {}
+        }
+
+        // example debug statements, that does not replace using breakbpoints and a proper debugger but can hel
+         //console.log($(this), 'changed to', value);
+         //alert($(this)+ 'changed to'+ value);
+        // console.log(regionWidgetElement, 'data is', regionWidgetElement.yourlabsWidget().autocomplete.data)
+});
+
+

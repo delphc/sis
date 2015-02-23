@@ -7,7 +7,7 @@
             <div class="alert {% if message.tags %}alert-{{ message.tags }}"{% endif %}>{{ message }}</div>
         {% endfor %}
     {% endif %}
-<form method="post" id="{{ view.entity_type }}-create-form" action="{{ view.form_action }}">{% csrf_token %}                   
+<form method="post" id="relationship-create-form" action="{{ view.form_action }}">{% csrf_token %}                   
                         
     <div class="row">
         <div class="col-sm-12">
@@ -17,18 +17,6 @@
                 <div id="form-main" class="well row">
                     {% crispy form %}
                 </div>
-                
-                <div id="form-sw" class="well row">
-                     
-                     {% for form in org_form.forms %}
-                            {% crispy form %}
-                            
-                    {% endfor %}
-                        
-                    {{ org_form.management_form }}
-                </div>
-                
-                {% include "contacts/_contact_info_fields.html" %}
                 
                 <div class="form-actions">
                     <input type="submit" name="submit" value="Save" class="btn btn-primary" id="submit-contact">
@@ -41,6 +29,6 @@
 <script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
 <script>
 $(document).ready(function() {
-{% include 'contacts/_contact_form_js.html' %}
+{% include 'clients/_client_relationships_js.html' with rel_form=None %}
 });
 </script>

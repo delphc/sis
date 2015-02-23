@@ -6,6 +6,9 @@
 {% block css_extra %}
 <link href="{% static 'plugins/jquery-ui/jquery-ui.css' %}" rel="stylesheet">
 {% endblock css_extra %}
+{% block divmodal %}
+{% include 'core/_divmodal.html' %}
+{% endblock divmodal %}
 
 {% block breadcrumb %}
 	<li><a href="{% url 'contact_list' %}">Contacts</a></li>
@@ -13,89 +16,22 @@
 {% endblock breadcrumb %}
 {% block content %}	      			  
 
-<div class="modal fade" id="form-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-      	<!--
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          
-        </div>
-       -->
-        <div id="form-modal-body" class="modal-body">
-          
-		</div>
-       	<div class="modal-footer">
-        	<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-      	</div>
-     </div>
-   </div>
-</div>
-<form method="post" id="contact-create-form" action="{{ view.form_action }}">{% csrf_token %}					
-	    				
-	<div class="row">
-	    <div class="col-sm-12">
-	        <div class="container-fluid">
-	    		<h4 class="pageHeader">{{ form.helper.form_title }}</h4>
-	    		
-	    		<div id="form-main" class="well">
-   					{% crispy form %}
-   					{% crispy contact_form %}
-	    		</div>
-		   		
-   				<div id="form-sw" class="well">
-   					 
-   					 
-   					 {% for form in org_form.forms %}
-  							{% crispy form %}
-  							
-   						
-   					{% endfor %}
-				        
-				   	{{ org_form.management_form }}
-   				</div>
-   				<div id="form-address" class="panel panel-default">
-   					<div class="panel-heading">{%trans 'Address' %}</div>
-  					<div class="panel-body">
-				    {% crispy address_form %}
-   					</div>  
-   				</div>
-   				<div id="form-phone" class="panel panel-default">
-   					<div class="panel-heading">{%trans 'Phone' %}</div>
-  					<div class="panel-body">
-  						{% for form in phone_form.forms %}
-  						<div class="inline phone_row row">
-  							
-  							<div class="col-xs-2">
-  								{% if form.instance.pk %}
-  								{{ form.id }}
-  								{{ form.DELETE }}
-  								{% endif %}
-  								{{ form.type | as_crispy_field }}
-  							</div>
-  							<div class="col-xs-3">
-  								{{ form.number | as_crispy_field }}
-  							</div>
-  							<div class="col-xs-2">
-  								{{ form.extension | as_crispy_field }}
-  							</div>
-  							<div class="col-xs-4">
-  								{{ form.info | as_crispy_field }}
-  							</div>
-   						</div>
-   						{% endfor %}
-				        
-				   		{{ phone_form.management_form }}
-   					</div>
-   				</div>
-   				<div class="form-actions">
-     				<input type="submit" name="submit" value="Save" class="btn btn-primary" id="submit-contact">
-    			</div>
-			</div>
-		</div>
-	</div>
-</form>
+{% include 'contacts/contact_form_inner.html' %}
+
 {% endblock content %}
 
+{% block javascript_extra %}
 
+<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
+<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+   $(function() {
+    
+        {% include 'core/_divmodal_js.html' with button_id='#new-org-button' load_url=org_create_url form_id='#org-create-form' select_id='#' %}
 
+    });
+});
+
+</script>
+{% endblock javascript_extra %}

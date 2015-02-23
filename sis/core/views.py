@@ -18,8 +18,13 @@ class AjaxTemplateMixin(object):
             split.append('.html')
             self.ajax_template_name = ''.join(split)
         print >>sys.stderr, '*** AjaxTemplateMixin - request.GET %s ****' % request.GET 
-        if request.is_ajax() or ('_popup' in request.GET and request.GET['_popup'] == '1'):
+        if request.is_ajax():
+            # test for module autocomplete-light
+            # or ('_popup' in request.GET and request.GET['_popup'] == '1'):
+            
             self.template_name = self.ajax_template_name
+            print >>sys.stderr, '*** AjaxTemplateMixin - AJAX REQUEST %s ****' % self.template_name
+        
         return super(AjaxTemplateMixin, self).dispatch(request, *args, **kwargs)
 
 class ActionMixin(object):
@@ -61,3 +66,53 @@ class ActionMixin(object):
             return _('%s registration.') % self.item_name
         else:
             return _('Contact update.') % self.item_name
+        
+            
+class ModalMixin(object):
+    target_modal_url_context_obj_name = ''
+    target_modal_url=''
+    
+    def get_target_modal_url(self):
+        if self.target_modal_url:
+            return reverse_lazy(self.target_modal_url)
+        
+        msg = "{0} is missing target_modal_url.".format(self.__class__)
+        raise NotImplementedError(msg)
+    
+    def get_target_modal_url_context_name(self):
+        if self.target_modal_url_context_obj_name:
+            return self.target_modal_url_context_obj_name
+        
+        msg = "{0} is missing target_modal_url_context_obj_name.".format(self.__class__)
+        raise NotImplementedError(msg)
+    
+    def get_context_data(self, **kwargs):
+        context = super(ModalMixin, self).get_context_data(**kwargs)
+        context[self.get_target_modal_url_context_name()] = self.target_modal_url #self.get_target_modal_url()
+        return context
+    
+class MultipleModalMixin(object):
+    target_modals = {} # key = context object name -> value = target url name (as defined in urls.py)
+    
+    def get_target_modals(self):
+        if self.target_modals:
+            return self.target_modals
+        msg = "{0} is missing target_modals.".format(self.__class__)
+        raise NotImplementedError(msg)
+    
+    # override this methode to return an url that includes parameters
+    def get_target_modal_url(self, context_url_object_name):
+        url_name = self.get_target_modals().get(context_url_object_name)
+        return reverse_lazy(url_name)
+        
+    def get_context_data(self, **kwargs):
+        context = super(MultipleModalMixin, self).get_context_data(**kwargs)
+        
+        for context_object_name in self.get_target_modals().keys():
+            target_url = self.get_target_modal_url(context_object_name)
+            
+            context[context_object_name] = target_url
+            
+        return context
+    
+    

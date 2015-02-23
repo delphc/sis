@@ -1,3 +1,5 @@
+{% load staticfiles %}
+{% load i18n %}
         {% include "contacts/_contact_info_js.html" with entity_type="contact" phones_form_prefix="contact_phones" %}
         
         {% include "contacts/_contact_info_js.html" with entity_type="org" phones_form_prefix="org_phones" %}
@@ -5,7 +7,8 @@
         $('.org_row').formset({
             prefix: '{{ org_form.prefix }}',
             formCssClass: 'dynamic-formsetorg',
-            //autoAddLinks: false               // do not add add and delete links to the formsets
+            addText: '<i class="fa fa-plus-circle"></i> {% trans "Add job" %}',
+            deleteText: '<i class="fa fa-remove"> {% trans "Remove job" %}'
         });
         
         $('#id_contact_form-contact_type').change(function(){

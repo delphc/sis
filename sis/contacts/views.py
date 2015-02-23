@@ -4,6 +4,7 @@ import logging
 import sys
 
 from django.shortcuts import render
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
@@ -26,7 +27,7 @@ from .forms import AddressForm, ContactForm, ContactInfoForm, OrganizationForm, 
 from .models import ContactEntity, SocialWorker, Address, Phone, Contact, Organization
 from clients.models import RelationType
 
-from core.views import ActionMixin, AjaxTemplateMixin
+from core.views import MultipleModalMixin, ActionMixin, AjaxTemplateMixin
 
 logger = logging.getLogger(__name__)
 
@@ -108,15 +109,31 @@ class ContactInfoMixin(ActionMixin):
         return self.render_to_response(self.get_context_data(**forms))
    
     def post(self, request, *args, **kwargs):
+        print >>sys.stderr, '***ContactInfoMixin  ENTERING POST ****' 
         
         forms = self.init_forms()
         
         forms_valid = self.validate_forms(forms)
         if forms_valid:
+            print >>sys.stderr, '***ContactInfoMixin  valid forms ****' 
+        
             self.form_valid(forms)
-            return HttpResponseRedirect(self.get_success_url())
+            if self.request.is_ajax():
+                print >>sys.stderr, '***ContactInfoMixin  Ajax request ****' 
+        
+                data = {
+                    'pk': self.object.pk,
+                    'name' : self.object.get_display_name()
+                }
+                return JsonResponse(data)
+            else:
+                return HttpResponseRedirect(self.get_success_url())
         else:
+            print >>sys.stderr, '***ContactInfoMixin  INVALID forms ****' 
+        
             return self.form_invalid(forms)
+        
+        
     
     def get_prefix(self, prefix):
         return self.entity_type + "_" + prefix
@@ -192,6 +209,12 @@ class ContactInfoMixin(ActionMixin):
     
     def form_invalid(self, forms):
         
+        for form_prefix in forms.keys():
+            form = forms[form_prefix]
+            print >>sys.stderr, '*** %s form errors *** %s' % (form_prefix, form.errors)
+        
+            #messages.error(self.request, form.errors())
+            
         return self.render_to_response(
             self.get_context_data(**forms))
    
@@ -242,12 +265,15 @@ class ContactEntityCreateView(LoginRequiredMixin, ContactInfoMixin, AjaxTemplate
         contact_info.content_object = self.object
         contact_info.save()
         
-        address = address_form.save(commit=False)
-        address.contact_info = contact_info
-        address.save()
+        if (address_form.is_valid()):
+            address = address_form.save(commit=False)
+            address.contact_info = contact_info
+            address.save()
                
         phones_form.instance = contact_info
         phones_form.save()
+        
+        
                 
 class ContactEntityUpdateView(LoginRequiredMixin, ContactInfoMixin, AjaxTemplateMixin, UpdateView):
     model = ContactEntity
@@ -285,9 +311,10 @@ class ContactEntityUpdateView(LoginRequiredMixin, ContactInfoMixin, AjaxTemplate
         contact_info.content_object = self.object
         contact_info.save()
         
-        address = address_form.save(commit=False)
-        address.contact_info = contact_info
-        address.save()
+        if address_form.is_valid():
+            address = address_form.save(commit=False)
+            address.contact_info = contact_info
+            address.save()
                
         phones_form.instance = contact_info
         phones_form.save()
@@ -308,7 +335,7 @@ class ContactMixin(object):
         return forms
     
     def validate_forms(self, forms):
-        forms_valid = super(ContactMixin, self).validate_forms(forms)
+       #forms_valid = super(ContactMixin, self).validate_forms(forms)
         
         form = forms['form']
         contact_form = forms['contact_form']
@@ -316,7 +343,7 @@ class ContactMixin(object):
         phones_form = forms['phones_form']
         org_form = forms['org_form']
         
-        forms_valid = forms_valid 
+        forms_valid = form.is_valid() 
         
         contact_type = form.cleaned_data['contact_type']
         if (contact_type == Contact.SOCIAL_WORKER):
@@ -339,6 +366,10 @@ class ContactMixin(object):
             
         if (phones_form.has_changed()):
             forms_valid = forms_valid and phones_form.is_valid() 
+            
+            
+        forms_valid = forms_valid and contact_form.is_valid()
+        
         return forms_valid
     
     
@@ -353,20 +384,22 @@ class ContactMixin(object):
             org.save()
             
     
-class ContactCreateView(ContactMixin, ContactEntityCreateView):
+class ContactCreateView(MultipleModalMixin, ContactMixin, ContactEntityCreateView):
     model = Contact
     entity_type = "contact"
-    template_name = "contacts/contact_new_form.html"
+    template_name = "contacts/contact_form.html"
     ajax_template_name = "contacts/contact_form_inner.html" 
     form_class = ContactForm
+    target_modals = { 'org_create_url' : 'org_create' }
     
 
-class ContactUpdateView(ContactMixin, ContactEntityUpdateView):
+class ContactUpdateView(MultipleModalMixin, ContactMixin, ContactEntityUpdateView):
     model = Contact
     entity_type = "contact"
-    template_name = "contacts/contact_new_form.html"
+    template_name = "contacts/contact_form.html"
     ajax_template_name = "contacts/contact_form_inner.html" 
     form_class = ContactForm
+    target_modals = { 'org_create_url' : 'org_create' }
     
 class OrganizationCreateView(ContactEntityCreateView):
     model = Organization

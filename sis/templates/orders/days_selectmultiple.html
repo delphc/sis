@@ -1,0 +1,22 @@
+{% load crispy_forms_filters %}
+{% load l10n %}
+
+<div class="controls {{ field_class }}"{% if flat_attrs %} {{ flat_attrs|safe }}{% endif %}>
+    {% include 'bootstrap3/layout/field_errors_block.html' %}
+
+    {% for choice in field.field.choices %}
+            
+            <button type="button" class="btn btn-order-day{% if choice.0 in field.value or choice.0|stringformat:"s" in field.value or choice.0|stringformat:"s" == field.value|stringformat:"s" %} btn-success active{%else%} btn-default{% endif %}" name="btn-{{ field.html_name }}" id="btn-id_{{ field.html_name }}_{{ choice.0 }}" value="id_{{ field.html_name }}_{{ choice.0 }}"  {{ field.field.widget.attrs|flatatt }} data-toggle="button">
+                {% if choice.0 in field.value or choice.0|stringformat:"s" in field.value or choice.0|stringformat:"s" == field.value|stringformat:"s" %}
+                <i class="fa fa-check"></i>
+                
+                {% endif %}
+                {{ choice.1|unlocalize }}
+            </button>
+            <input type="checkbox" style="display: none" {% if choice.0 in field.value or choice.0|stringformat:"s" in field.value or choice.0|stringformat:"s" == field.value|stringformat:"s" %} checked="checked"{% endif %} name="{{ field.html_name }}" id="id_{{ field.html_name }}_{{ choice.0 }}" value="{{ choice.0|unlocalize }}" {{ field.field.widget.attrs|flatatt }}>
+
+        </label>
+    {% endfor %}
+
+    {% include 'bootstrap3/layout/help_text.html' %}
+</div>

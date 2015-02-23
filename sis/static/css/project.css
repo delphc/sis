@@ -820,6 +820,10 @@ div.vertical-tab div.vertical-tab-content:not(.active){
     padding-top: 10px;
 }
 
+.form-label {
+    padding-top: 30px;
+}
+
 #tab_links li.tab-pane {
     background-color: #006E24;
     

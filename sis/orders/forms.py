@@ -3,130 +3,186 @@ from django import forms
 from django.core.urlresolvers import reverse_lazy
 from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
+from django.forms.widgets import CheckboxSelectMultiple, RadioSelect
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext as _
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field, Fieldset, ButtonHolder, Div, HTML, Hidden
 from crispy_forms.bootstrap import (
-    FormActions, TabHolder, Tab, InlineRadios, InlineField, UneditableField)
+    FormActions, TabHolder, Tab, InlineCheckboxes, InlineRadios, InlineField, UneditableField)
 
-from crispy_forms.layout import LayoutObject, TEMPLATE_PACK
+from crispy_forms.layout import Layout, TEMPLATE_PACK
 from crispy_forms.utils import flatatt
 
-from models import Order, OrderStop, DeliveryDefault, DefaultMealSide
-from clients.forms import ProfileForm
+from models import Order, MealDefault, MealDefaultMeal, MealDefaultSide, ServiceDay
+from core.forms import CoreInlineFormHelper, CoreModelForm, CoreBaseInlineFormSet
    
-
+class SetupFormHelper(FormHelper):
+    def __init__(self, *args, **kwargs):
+        self.form_id = kwargs.pop('form_id')
+        self.form_title = kwargs.pop('form_title')
+        show_form_title = kwargs.pop('show_form_title')
+        
+        super(SetupFormHelper, self).__init__(*args, **kwargs)
+        self.form_method = 'post'
+        self.form_tag = False
+        self.disable_csrf = True
+        
     
-class OrderForm(ProfileForm):
-    create_or_update_stop = forms.BooleanField(
-                                         initial = False,
-                                         label = '',
-                                         required = False,
-                                         widget = forms.HiddenInput
-                                         )
-    remove_stop = forms.BooleanField(
-                                         initial = False,
-                                         label = '',
-                                         required = False,
-                                         widget = forms.HiddenInput
-                                         )
+class DaysInlineButtons(InlineCheckboxes):
+    """
+    Layout object for rendering checkboxes inline::
+
+        DaysInlineButtons('field_name')
+    """
+    template = "orders/days_selectmultiple_inline.html"
+
+    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+        context.update({'inline_class': 'inline'})
+        return super(InlineCheckboxes, self).render(form, form_style, context)
+
+            
+class OrderSetupFormHelper(SetupFormHelper):   
+    
+    def __init__(self, *args, **kwargs):
+        super(OrderSetupFormHelper, self).__init__(*args, **kwargs)
+        
+        self.layout = Layout(
+            Div(
+                Field('type', wrapper_class="col-xs-3"),
+                
+                css_class="row"
+                ),                                    
+            Div(
+                DaysInlineButtons('days',css_class="col-xs-12"),
+                css_class="row"
+                ),
+            Div(
+                Div(
+                    InlineRadios('meal_defaults_type'),
+                    css_class="col-xs-4"
+                ),
+                css_class="row"
+                )
+           )
+
+   
+                   
+class OrderForm(CoreModelForm):
+    DEFAULTS_TYPE_EVERYDAY='A'
+    DEFAULTS_TYPE_DAY='D'
+    DEFAULTS_TYPE_CHOICES = (
+                             (DEFAULTS_TYPE_EVERYDAY, _('Same for everyday')),
+                             (DEFAULTS_TYPE_DAY, _('Day-specific'))
+                             )
+    meal_defaults_type = forms.ChoiceField(choices=DEFAULTS_TYPE_CHOICES,
+                                      widget=RadioSelect)
     class Meta: 
         model = Order
-        fields = ['start_date', 'type', 'monday', 'tuesday', 'wednesday', 'friday', 'saturday']
+        fields = ['type', 'days' ]
         
     def __init__(self, *args, **kwargs):
-        
+        instance = kwargs.get('instance', None)
+        if not instance:
+            kwargs.update(initial={ "meal_defaults_type": self.DEFAULTS_TYPE_EVERYDAY })
         super(OrderForm, self).__init__(*args, **kwargs)
+        self.fields['days'].widget = CheckboxSelectMultiple()
+        self.fields['days'].help_text = ""
+        self.helper = OrderSetupFormHelper(self, **{'form_id': 'id-orderCreateForm', 'form_title': _('Meal Default'), 'show_form_title': False})
         
         
-        self.helper = FormHelper(self)
-        self.helper.form_method = 'POST'
-        self.helper.form_id = 'order-form'
-        
-        self.fields['start_date'].label = ''
-        self.fields['type'].label=''
-        self.fields['monday'].label = ''
-        self.fields['monday'].widget = forms.HiddenInput()
-        self.fields['tuesday'].label = ''
-        self.fields['tuesday'].widget = forms.HiddenInput()
-        self.fields['wednesday'].label = ''
-        self.fields['wednesday'].widget = forms.HiddenInput()
-        self.fields['friday'].label = ''
-        self.fields['friday'].widget = forms.HiddenInput()
-        self.fields['saturday'].label = ''
-        self.fields['saturday'].widget = forms.HiddenInput()
-        
-        
-class OrderStopForm(forms.ModelForm):
-    class Meta:
-        model = OrderStop
-        fields = ['start_date', 'end_date', 'reason_code', 'reason_other' ]
-        localized_fields = ('__all__')
-       
+class MealDefaultSetupFormHelper(SetupFormHelper):   
+    
     def __init__(self, *args, **kwargs):
-        super(OrderStopForm, self).__init__(*args, **kwargs)
- 
-        self.fields['start_date'].label=_('From')
-        self.fields['end_date'].label=_('To')
-        self.fields['reason_code'].label=_('Reason')
-        self.fields['reason_other'].label=_('Precise reason')
-          
-    def save(self, commit=True):
-        instance = super(OrderStopForm, self).save(commit=False)
-        instance.end_date = self.cleaned_data['end_date'] 
-        if (instance.end_date == None):
-            instance.end_date = self.cleaned_date['start_date']
-         
-        if commit:
-            instance.save()
-             
-        return instance
-  
-class OrderStopFormHelper(FormHelper):
-    def __init__(self, *args, **kwargs):
-        super(OrderStopFormHelper, self).__init__(*args, **kwargs)
-        self.form_method = 'post'
-        self.form_id = 'order-status-form'
-        self.form_tag = True
-        self.disable_csrf = True
-        self.form_class = 'form-inline'
-        self.field_template = 'bootstrap3/layout/inline_field.html'
-        self.disable_csrf = True
+        super(MealDefaultSetupFormHelper, self).__init__(*args, **kwargs)
+        
         self.layout = Layout(
-                            Div(
-                                Div(
-                                    Field('start_date', wrapper_class="col-xs-6"), 
-                                    Field('end_date', wrapper_class="col-xs-6"), 
-                                    css_class="row"),
-                                Div(
-                                    Field('reason_code', wrapper_class="col-xs-4"),
-                                    Field('reason_other', wrapper_class="col-xs-8"),
-                                    css_class="row"),
-                                css_class="status_row")
-                            )
+            Div(
+                Field('day', wrapper_class="col-xs-3"),
+                Field('nb_meal', wrapper_class="col-xs-3"),
+                Field('meal_type', wrapper_class="col-xs-3"),
+                
+                css_class="row"
+                )
+           )
 
-class DeliveryDefaultForm (forms.ModelForm):
+        
+class MealDefaultForm(CoreModelForm):
     class Meta:
-        model = DeliveryDefault
-        fields = ['nb_meal']
-        localized_fields = ('__all__')
-       
+        model = MealDefault
+        fields = [ 'day' ]
+    
     def __init__(self, *args, **kwargs):
-        super(DeliveryDefaultForm, self).__init__(*args, **kwargs)
- 
-        self.fields['nb_meal'].label=_('Meals')
         
-        self.helper = FormHelper(self)
-        self.helper.form_method = 'POST'
-        self.helper.form_id = 'deliv-form'
-        self.helper.form_tag = False
-        self.helper.disable_csrf = False
+        super(MealDefaultForm, self).__init__(*args, **kwargs)
         
+        self.helper = MealDefaultSetupFormHelper(self, **{'form_id': 'id-orderCreateForm', 'form_title': 'Meal Service', 'show_form_title': False})
+
+
         
 
-DefaultMealSideFormSet=inlineformset_factory(DeliveryDefault, DefaultMealSide,
-                                             extra=0, min_num=0, max_num=4, validate_min=True, validate_max=True,
-                                             fields=('quantity', 'side')
-                                             )
+class MealDefaultMealSetupFormHelper(CoreInlineFormHelper):   
+    
+    def __init__(self, *args, **kwargs):
+        super(MealDefaultMealSetupFormHelper, self).__init__(*args, **kwargs)
+        
+        formset_prefix = self.form.prefix.split('-')[0]
+        self.layout = Layout(
+            Div(
+                Field('quantity', wrapper_class="col-xs-2"),
+                HTML('<div class="col-xs-1 form-label"><span>'+_("Meal")+'</span></div>'),
+                Field('size', wrapper_class="col-xs-3"),
+                
+                css_class="inline meal_row_"+formset_prefix+" row"
+                )
+           )
+
+                   
+class MealDefaultMealForm(CoreModelForm):
+    class Meta:
+        model = MealDefaultMeal
+        fields = [ 'size', 'quantity' ]
+    
+    def __init__(self, *args, **kwargs):
+        
+        super(MealDefaultMealForm, self).__init__(*args, **kwargs)
+        
+        self.helper = MealDefaultMealSetupFormHelper(self)
+
+MealDefaultMealFormSet = inlineformset_factory(MealDefault, MealDefaultMeal, form=MealDefaultMealForm, formset=CoreBaseInlineFormSet, can_delete=True,
+                                     extra=0, min_num=1, max_num=2, validate_min=True, validate_max=True,
+                                     fields=( 'size', 'quantity' ))
+
+
+
+class MealDefaultSideSetupFormHelper(CoreInlineFormHelper):   
+    
+    def __init__(self, *args, **kwargs):
+        super(MealDefaultSideSetupFormHelper, self).__init__(*args, **kwargs)
+        
+        formset_prefix = self.form.prefix.split('-')[0]
+        self.layout = Layout(
+            Div(
+                Field('quantity', wrapper_class="col-xs-2"),
+                Field('side', wrapper_class="col-xs-3"),
+                
+                css_class="inline side_row_"+formset_prefix +" row" 
+                )
+           )
+        
+class MealDefaultSideForm(CoreModelForm):
+    class Meta:
+        model = MealDefaultSide
+        fields = [ 'side', 'quantity' ]
+    
+    def __init__(self, *args, **kwargs):
+        
+        super(MealDefaultSideForm, self).__init__(*args, **kwargs)
+        
+        self.helper = MealDefaultSideSetupFormHelper(self)
+        
+MealDefaultSideFormSet = inlineformset_factory(MealDefault, MealDefaultSide, form=MealDefaultSideForm, formset=CoreBaseInlineFormSet, can_delete=True,
+                                     extra=0, min_num=1, max_num=3, validate_min=True, validate_max=True,
+                                     fields=( 'side', 'quantity' ))
+

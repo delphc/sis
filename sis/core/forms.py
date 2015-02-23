@@ -22,6 +22,16 @@ from crispy_forms.layout import LayoutObject, BaseInput, TEMPLATE_PACK
 
 from models import PendedForm
 
+class CoreInlineFormHelper(FormHelper):   
+    
+    def __init__(self, *args, **kwargs):
+        super(CoreInlineFormHelper, self).__init__(*args, **kwargs)
+        self.form_method = 'post'
+        self.form_tag = False
+        self.disable_csrf = True
+        self.form_class = 'form-inline'
+        self.field_template = 'bootstrap3/layout/inline_field.html'
+
 class CoreModelForm(autocomplete_light.ModelForm):
     """
         edit attribute indicates whether the form is used for update (edit=True) or creation (edit=False)

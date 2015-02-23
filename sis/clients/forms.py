@@ -9,6 +9,7 @@ from django.forms.fields import ChoiceField
 from django.forms.models import ModelChoiceIterator
 from django.forms.extras.widgets import SelectDateWidget
 from django.forms.formsets import formset_factory
+from django.forms.models import inlineformset_factory
 from django.contrib.contenttypes.forms import generic_inlineformset_factory, BaseGenericInlineFormSet
 from django.template.loader import render_to_string
 from django.utils import translation
@@ -24,11 +25,11 @@ from crispy_forms.utils import flatatt
 
 from diplomat.fields import LanguageChoiceField
 
-from models import Client, Referral, ReferralReason
+from models import Client, Referral, ReferralReason, Relationship
 from contacts.models import Address, Phone
 from deliveries.models import Route
 
-from core.forms import PendForm, FormContainer, Cancel, CoreModelForm
+from core.forms import PendForm, FormContainer, Cancel, CoreModelForm, CoreBaseInlineFormSet
 from contacts.forms import ContactInfoForm, AddressFormSet, PhoneFormSet
 
 import selectable.forms as selectable
@@ -425,7 +426,9 @@ class ReferralEditFormHelper(FormHelper):
                                          css_class="form-actions pull-right"
                                          )
                             )
-               
+
+
+                       
 class ReferralForm(CoreModelForm):
     class Meta: 
         model = Referral
@@ -438,20 +441,6 @@ class ReferralForm(CoreModelForm):
             #'contact': selectable.AutoComboboxSelectWidget(lookup_class=ContactLookup)
         }
         
-#         reasonsAutonomyLoss = RefReasonsModelChoiceField(
-#                                     queryset=ReferralReason.objects.filter(category=ReferralReason.AUTONOMY_LOSS).values('id', 'reason_en', 'category'), 
-#                                     widget = forms.CheckboxSelectMultiple)
-#         reasonsSocialIsolation = RefReasonsModelChoiceField(
-#                                     queryset=ReferralReason.objects.filter(category=ReferralReason.SOCIAL_ISOLATION), 
-#                                     widget = forms.CheckboxSelectMultiple)
-#         reasonsFoodInsecurity = RefReasonsModelChoiceField(
-#                                     queryset=ReferralReason.objects.filter(category=ReferralReason.FOOD_INSECURITY), 
-#                                     widget = forms.CheckboxSelectMultiple)
-#         widgets = {
-#                    'contact': autocomplete_light.ChoiceWidget(
-#                     'FlyAutocomplete', widget_attrs={'data-widget-bootstrap':
-#                     'fly-widget'})
-#                 }
         
     def __init__(self, *args, **kwargs):
         
@@ -467,40 +456,73 @@ class ReferralForm(CoreModelForm):
         else:
             self.helper = ReferralCreateFormHelper(form=self, **{'form_id': 'ref-form', 'form_title': _('Referral'), 'show_form_title': False})
     
-#         self.helper = FormHelper(self)
-#         self.helper.form_method = 'POST'
-#         self.helper.form_id = 'ref-form'
-#         self.helper.form_tag = False
-#         self.helper.form_title = _("Referral")
-#         
-#         self.fields['reasons'] = RefReasonsModelChoiceField(
-#                                   queryset=ReferralReason.objects.all(), #.values('id', 'reason_en', 'category'),
-#                                   widget = forms.CheckboxSelectMultiple)
-#         #self.fields['contact'].empty_label=_('Select a contact')
-#         
-#         
-#         
-#         self.helper.layout = Layout(
-#             Div(
-#                 Div(
-#                     MultiWidgetField('ref_date', attrs=({'style': 'width: 33%; display: inline-block; class:col-xs-1'})),   
-#                     css_class="col-xs-3"
-#                     ),
-#                 css_class="row"
-#                 ),
-#                                             
-#             Div(
-#                 Field('reasons', template="clients/_client_ref_reasons_checkboxes.html"),
-#                 css_class="row"),
-#             Div(
-#                 Field('notes', wrapper_class="col-xs-12", rows="3"),
-#                 css_class="row"),
-#             Div(
-#                 Field('contact', wrapper_class="col-xs-6"),
-#                 HTML('<div style="margin-top:20px"><a id="new-contact-button" href="#" class="btn btn-primary" data-target="#largeModal" data-toggle="modal" ><i class="fa fa-plus"></i>'+_(" Add New Contact ")+'</a></div>'),
-#                  
-#                 css_class="row"),            
-#                 )               
+class RelationshipCreateFormHelper(FormHelper):
+    def __init__(self, *args, **kwargs):
+        super(RelationshipCreateFormHelper, self).__init__(*args)
+        self.form_method = 'post'
+        self.form_tag = False
+        self.form_class = 'form-inline'
+        self.field_template = 'bootstrap3/layout/inline_field.html'
+        self.form_id = kwargs.pop('form_id')
+        self.form_title = kwargs.pop('form_title')
+        show_form_title = kwargs.pop('show_form_title')
+        
+        self.layout = Layout(
+            Div(
+                Div(
+                    Field('contact_type', wrapper_class="col-xs-2"),
+                    Field('rel_type', wrapper_class="col-xs-6"),
+                    css_class="inline row"),
+                Div(
+                    Field('contact', wrapper_class="col-xs-6"),
+                    #HTML('<div class="col-xs-3" style="margin-top:20px"><a id="new-contact-button" href="#" class="btn btn-primary" data-target="#largeModal" data-toggle="modal" ><i class="fa fa-plus"></i>'+_(" Add New Contact ")+'</a></div>'),
+                    HTML('<div id="new-contact-button" class="col-xs-2 btn btn-primary" style="margin-top:20px;padding-top:10px" data-target="#largeModal" data-toggle="modal"><i class="fa fa-plus"></i>'+_(" Add New Contact ")+'</div>'),
+                      
+                    css_class="inline row"),
+                Div(
+                     Field('emergency', wrapper_class="col-xs-offset-1 col-xs-3"),
+                     css_class="inline row"),
+                Div(
+                     Field('follow_up', wrapper_class="col-xs-offset-1 col-xs-3"),
+                     css_class="inline row"),
+                
+                Div(Field('info', wrapper_class="col-xs-12"),
+                    css_class="inline row"),
+                css_class="relation_row"
+            )            
+        )     
+        
+         
+class RelationshipForm(CoreModelForm):
+    class Media:
+        """
+        We're currently using Media here, but that forced to move the
+        javascript from the footer to the extrahead block ...
+
+        So that example might change when this situation annoys someone a lot.
+        """
+        js = ('dependant_autocomplete.js',)
+
+    class Meta:
+        model = Relationship    
+        fields = ['contact_type', 'rel_type', 'contact', 'emergency', 'follow_up', 'info' ]
+        autocomplete_fields = ('contact', 'rel_type')
+        
+    def __init__(self, *args, **kwargs):
+        super(RelationshipForm, self).__init__(*args, **kwargs)
+        self.helper = RelationshipCreateFormHelper(form=self,  **{'form_id': 'rel-form', 'form_title': _('Contacts'), 'show_form_title': True})
+    
+class RelationshipInlineFormSet(CoreBaseInlineFormSet):
+    def __init__(self, data=None, files=None, instance=None,
+                 save_as_new=False, prefix=None, queryset=None, **kwargs):
+        self.form_title = _('Contacts')
+        super(RelationshipInlineFormSet, self).__init__( data, files, instance,
+                 save_as_new, prefix, queryset, **kwargs)
+
+RelationshipFormSet = inlineformset_factory(Client, Relationship, form=RelationshipForm, formset=CoreBaseInlineFormSet, can_delete=True,
+                                     extra=0, min_num=1, max_num=3, validate_min=True, validate_max=True,
+                                     fields=( 'contact_type', 'rel_type', 'contact', 'emergency', 'follow_up', 'info'),
+                                     )
 
         
         

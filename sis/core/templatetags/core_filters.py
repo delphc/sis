@@ -18,3 +18,13 @@ def nice_errors(form, non_field_msg='General form errors'):
                 key = form.fields[field].label
             nice_errors[key] = errors
     return nice_errors
+
+
+@register.filter
+def get_dict_item(dictionary, key):
+    return dictionary.get(key)
+
+@register.filter
+def get_array_item(array, key):
+    return array[key]
+

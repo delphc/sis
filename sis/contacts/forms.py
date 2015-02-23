@@ -155,15 +155,15 @@ class OrganizationMemberForm(CoreModelForm):
             Div(
                 Div(
                     Field('id', type="hidden"),
-                    Field('organization', wrapper_class="col-xs-3"),
-                    HTML('<div class="col-xs-2"><a id="new-org-button" href="#" class="btn btn-primary" data-target="#largeModal" data-toggle="modal" ><i class="fa fa-plus"></i>'+_(" Add New Organization ")+'</a></div>'),
+                    Field('organization', wrapper_class="col-xs-6"),
+                    HTML('<div class="col-xs-6"><a id="new-org-button" href="#" class="btn btn-primary" data-target="#largeModal" data-toggle="modal" ><i class="fa fa-plus"></i>'+_(" Add New Organization ")+'</a></div>'),
                     css_class="row"
                 ),
                 Div(
                     Field('position', wrapper_class="col-xs-3", placeholder=_("Select value")),
                     css_class="row"
                 ),
-                css_class="org_row"
+                css_class="org_row container-fluid"
             )
             )
     
@@ -328,7 +328,6 @@ class PhoneFormSetHelper(FormHelper):
         self.disable_csrf = True
         self.form_class = 'form-inline'
         self.field_template = 'bootstrap3/layout/inline_field.html'
-        self.disable_csrf = True
         self.layout = Layout(
                             Div(
                             Field('id', type="hidden"),
@@ -374,13 +373,3 @@ HomePhoneFormSet = inlineformset_factory(ContactInfo, Phone, form=PhoneEditForm,
                                      extra=0, min_num=1, max_num=3, validate_min=True, validate_max=True,
                                      fields=( 'type', 'number', 'extension', 'info'))
 
-class FullContactForm(FormContainer):
-    base = ContactInfoForm
-    address = AddressForm
-    phones = PhoneFormSet
-    
-#     def __init__(self, prefix, **kwargs):
-#         kwargs.update({'prefix':prefix})
-#         super(FullContactForm, self).__init__(**kwargs)
-        
-    

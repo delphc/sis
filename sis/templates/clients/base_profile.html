@@ -75,6 +75,9 @@
 				<li class="tab-pane {% if tab == 'ref' %} active {% endif %}">
 					<a href="{% url 'client_profile_referral' pk=object.id %}" >{% trans 'Referral' %}</a>
 				</li>
+				<li class="tab-pane">
+                    <a href="{% url 'client_profile_relationship' pk=object.id %}" >{% trans 'Contacts' %}</a>
+                </li>
 				{% comment %}
 				<li class="tab-pane {% if tab == 'order' %} active {% endif %}">
 					<a href="{% url 'client_profile_order' pk=object.id %}" >{% trans 'Command' %}</a>
@@ -83,9 +86,7 @@
 				<li class="tab-pane">
 					<a href="{% url 'client_profile' tab='meal' pk=object.id %}" >{% trans 'Meal' %}</a>
 				</li>
-				<li class="tab-pane">
-					<a href="{% url 'client_profile' tab='contacts' pk=object.id %}" >{% trans 'Contacts' %}</a>
-				</li>
+				
 				<li class="tab-pane">
 					<a href="{% url 'client_profile' tab='deliv' pk=object.id %}" >{% trans 'Deliveries' %}</a>
 				</li>
@@ -128,25 +129,16 @@ $(document).ready(function() {
       $( ".form-line" ).hide();
     });
     
-//    $( "#show-comm-form-lines" ).click(function() {
-//     $( ".comm-form-line" ).show("blind");
-//    });
-// 	$( "#cancel-comm-form" ).click(function() {
-//     $( ".comm-form-line" ).hide();
-//    });
     
    $(".li-phone").formset({
             prefix: '{{ phone_form.prefix }}'
         });
-   
-	
 
-
-{% block javascript_extra_tab %}
-{% endblock javascript_extra_tab %}
 });
 
 </script>
+{% block javascript_extra_tab %}
+{% endblock javascript_extra_tab %}
 {% block selectable-js %}
 {% endblock selectable-js %}
 {% endblock javascript_extra %}

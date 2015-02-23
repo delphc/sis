@@ -14,19 +14,3 @@
 {% include 'contacts/organization_form_inner.html' %}
 {% endblock content %}	     
 
-{% block javascript_extra %}
-
-<script src="{% static 'plugins/jquery-ui/jquery-ui.js' %}"></script>
-<script src="{% static 'plugins/jquery-formset/jquery.formset.js' %}"></script>
-<script type="text/javascript">
-$(document).ready(function() {
-   $(function() {
-
-        {% include "contacts/_contact_form_js.html" %}  
-		
-	});
-});
-
-
-</script>
-{% endblock javascript_extra %}

@@ -1,0 +1,55 @@
+{%comment%}
+This template has to be include to make a create view open within a bootstrap modal popup
+How to call this html : 
+{%include 'core/_divmodal_js.html with button_id=[value] load_url=[value] form_id=[value] select_id=[value] %}
+For instance:
+{%include 'core/_divmodal_js.html with button_id='#new-org-button' load_url='org_create' form_id='#org-create-form' select_id='#id_sw-organization' %}
+
+button_id : id of "add another" button 
+load-url : url name of create view
+form_id : id of form loaded in the modal popup
+select_id : id of select box to be loaded with the new item when returning from the modal 
+            or # if no select box needs to be populated
+{%endcomment%}
+
+        var formAjaxSubmit = function(form, modal) {
+                $(form).submit(function (e) {
+                    e.preventDefault();
+                    $.ajax({
+                        type: $(this).attr('method'),
+                        url: $(this).attr('action'),
+                        data: $(this).serialize(),
+                        success: function (xhr, ajaxOptions, thrownError) {
+                            //alert(xhr.pk);
+                            if ( $(xhr).find('.has-error').length > 0 ) {
+                                $(modal).find('.modal-body').html(xhr);
+                                formAjaxSubmit(form, modal);
+                            } else {
+                                $(modal).modal('toggle');
+                                var newSelectId = '{{ select_id }}'
+                                if (newSelectId !== '#') {
+                                    var newItem = xhr;
+                                    var newSelect = $('{{ select_id }}');
+                                    newSelect.append('<option value="' + newItem.pk + '" >' + newItem.name + '</option>');
+                                    $('{{ select_id }}').replaceWith(newSelect);
+                                    $("{{ select_id }} option[value='" + newItem.pk + "']").attr('selected', 'selected');
+                                }
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                        }
+                    });
+                });
+            };
+            
+        // use .on('click'...) because .click(..) would not work 
+        // with elements created after the DOM has been created
+        $('body').on('click', '{{button_id}}', function() {
+            $('#form-modal-body').load('{{ load_url }}', function () {
+                $('#form-modal').modal('toggle');
+                formAjaxSubmit('{{ form_id }}', '#form-modal');
+            });
+        });
+        
+
+

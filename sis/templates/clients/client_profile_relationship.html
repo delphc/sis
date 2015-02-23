@@ -1,0 +1,88 @@
+{% extends 'clients/base_profile.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% get_current_language as LANGUAGE_CODE %}
+
+{% load crispy_forms_tags %}
+{% load verbose_names %}
+{% load core_filters %}
+
+
+{% block divmodal %}
+{% include 'core/_divmodal.html' %}
+{% endblock divmodal %}
+
+{% block tab-content %}
+<div id="tab-rel" class="tab-pane active">
+	    				
+<h4><span>{{ headline }}</span>
+	<a class="btn btn-primary pull-right" id="new-rel-button" href="#">
+		<i class="fa fa-edit"></i>
+		Add new relationship</a>
+</h4>
+{{ datatable }}
+
+<div id="form-create-rel-wrapper">
+          
+</div>
+</div>
+{% endblock tab-content %}
+{% block javascript_extra_tab %}
+<script src="{% static 'plugins/datatables/js/jquery.dataTables.js' %}"></script>
+<script type="text/javascript" charset="utf8" src="{{ STATIC_URL }}js/datatableview.js"></script>
+        
+<script>
+    /* Project specific Javascript goes here. */
+datatableview.auto_initialize = false;
+$(document).ready(function() {
+    
+    var common_options = {
+        searching:false,
+        "bLengthChange": false,
+        "bPaginate": false
+    };
+    datatableview.initialize($('.datatable'), common_options);    
+    
+    var formAjaxSubmit = function(form, div_wrapper) {
+                $(form).submit(function (e) {
+                    e.preventDefault();
+                    $.ajax({
+                        type: $(this).attr('method'),
+                        url: $(this).attr('action'),
+                        data: $(this).serialize(),
+                        success: function (xhr, ajaxOptions, thrownError) {
+                            //alert(xhr.pk);
+                            if ( $(xhr).find('.has-error').length > 0 ) {
+                                $(div_wrapper).find('.div_wrapper-body').html(xhr);
+                                formAjaxSubmit(form, div_wrapper);
+                            } else {
+                                $(div_wrapper).hide();
+                                var newSelectId = '{{ select_id }}'
+                                if (newSelectId !== '#') {
+                                    var newItem = xhr;
+                                    var newSelect = $('{{ select_id }}');
+                                    newSelect.append('<option value="' + newItem.pk + '" >' + newItem.name + '</option>');
+                                    $('{{ select_id }}').replaceWith(newSelect);
+                                    $("{{ select_id }} option[value='" + newItem.pk + "']").attr('selected', 'selected');
+                                }
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                        }
+                    });
+                });
+            };
+    // use .on('click'...) because .click(..) would not work 
+        // with elements created after the DOM has been created
+        $('body').on('click', '#new-rel-button', function() {
+            $('#form-create-rel-wrapper').load('{{ rel_create_url }}', function () {
+                $('#form-create-rel-wrapper').show();
+                formAjaxSubmit('relationship-create-form', '#form-create-rel-wrapper');
+            });
+        });
+    
+});
+
+</script>
+    
+{% endblock javascript_extra_tab %}

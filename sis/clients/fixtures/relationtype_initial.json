@@ -1,0 +1,48 @@
+[
+{
+	"model": "clients.relationtype",
+	"pk": 1,
+    "fields": {
+        "contact_type": "N",
+        "type_en": "Son",
+        "type_fr": "Fils"
+    }
+},
+{
+	"model": "clients.relationtype",
+	"pk": 2,
+    "fields": {
+        "contact_type": "N",
+        "type_en": "Daughter",
+        "type_fr": "Fille"
+    } 
+},
+{
+	"model": "clients.relationtype",
+	"pk": 3,
+    "fields": {
+        "contact_type": "W",
+        "type_en": "Case worker",
+        "type_fr": "Travailleur social"
+    }
+},
+{
+	"model": "clients.relationtype",
+	"pk": 4,
+    "fields": {
+        "contact_type": "W",
+        "type_en": "Doctor",
+        "type_fr": "Docteur"
+    }
+},
+{
+	"model": "clients.relationtype",
+	"pk": 5,
+    "fields": {
+        "contact_type": "W",
+        "type_en": "Nutritionist",
+        "type_fr": "Nutritioniste"
+    }
+}
+
+]
