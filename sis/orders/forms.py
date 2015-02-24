@@ -67,16 +67,61 @@ class OrderSetupFormHelper(SetupFormHelper):
                 )
            )
 
-   
-                   
-class OrderForm(CoreModelForm):
-    DEFAULTS_TYPE_EVERYDAY='A'
-    DEFAULTS_TYPE_DAY='D'
-    DEFAULTS_TYPE_CHOICES = (
-                             (DEFAULTS_TYPE_EVERYDAY, _('Same for everyday')),
-                             (DEFAULTS_TYPE_DAY, _('Day-specific'))
+class EditFormHelper(FormHelper):
+    def __init__(self, *args, **kwargs):
+        if 'label_class' in kwargs:      
+            label_class = kwargs.pop('label_class')
+        else:
+            label_class = 'col-lg-3'
+        if 'field_class' in kwargs:      
+            field_class = kwargs.pop('field_class')
+        else:
+            field_class = 'col-lg-9'
+        
+        self.tab = kwargs.pop('tab')
+        self.cancel_url = kwargs.pop('cancel_url')
+        
+        super(EditFormHelper, self).__init__(*args, **kwargs)
+        
+        
+        self.label_class = label_class
+        self.field_class = field_class
+        self.form_tag = True
+        self.form_method = 'post'
+        self.form_action = reverse_lazy('client_profile_'+self.tab+'_edit', kwargs={'pk':str(self.form.instance.client.id)})
+        self.form_class = 'form-horizontal'
+        
+class OrderEditFormHelper(EditFormHelper):   
+    
+    def __init__(self, *args, **kwargs):
+        kwargs.update({'tab': 'order'})
+        kwargs.update({'label_class':'col-lg-2'})
+        kwargs.update({'field_class':'col-lg-9'})
+        
+        super(OrderEditFormHelper, self).__init__(*args, **kwargs)
+        
+        html_service_status = '<div class="row form-group">'
+        html_service_status += '<label class="control-label col-xs-2">'+_('Service status')+'</label>'
+        html_service_status += '<label class="col-xs-10 form-readonly-field">{{ order.get_current_status_display }}</label>'
+        html_service_status += '</div>'
+        
+        
+        self.layout = Layout(
+                             HTML(html_service_status),
+                             'type',
+                             DaysInlineButtons('days'), 
+                             InlineRadios('meal_defaults_type')
                              )
-    meal_defaults_type = forms.ChoiceField(choices=DEFAULTS_TYPE_CHOICES,
+#                              FormActions(
+#                                          Submit('save', 'Save changes'),
+#                                          HTML('<a class="btn btn-default" href="'+self.cancel_url+'" %}">'+_("Cancel")+"</a>"),
+#                                          css_class="form-actions pull-right"
+#                                          )
+#                             )
+               
+class OrderForm(CoreModelForm):
+    
+    meal_defaults_type = forms.ChoiceField(choices=Order.DEFAULTS_TYPE_CHOICES,
                                       widget=RadioSelect)
     class Meta: 
         model = Order
@@ -85,11 +130,17 @@ class OrderForm(CoreModelForm):
     def __init__(self, *args, **kwargs):
         instance = kwargs.get('instance', None)
         if not instance:
-            kwargs.update(initial={ "meal_defaults_type": self.DEFAULTS_TYPE_EVERYDAY })
+            kwargs.update(initial={ "meal_defaults_type": Order.DEFAULTS_TYPE_EVERYDAY['code'] })
+        else:
+            kwargs.update(initial={ "meal_defaults_type": instance.get_meal_defaults_type_code() })
         super(OrderForm, self).__init__(*args, **kwargs)
         self.fields['days'].widget = CheckboxSelectMultiple()
         self.fields['days'].help_text = ""
-        self.helper = OrderSetupFormHelper(self, **{'form_id': 'id-orderCreateForm', 'form_title': _('Meal Default'), 'show_form_title': False})
+        
+        if self.edit:
+            self.helper = OrderEditFormHelper(form=self, **{'cancel_url': 'client_profile_order' })
+        else:
+            self.helper = OrderSetupFormHelper(self, **{'form_id': 'id-orderCreateForm', 'form_title': _('Meal Default'), 'show_form_title': False})
         
         
 class MealDefaultSetupFormHelper(SetupFormHelper):   

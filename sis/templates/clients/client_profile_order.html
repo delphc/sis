@@ -1,0 +1,100 @@
+{% extends 'clients/base_profile.html' %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+
+{% load crispy_forms_tags %}
+{% load verbose_names %}
+{% load core_filters %}
+
+
+
+{% block tab-content %}
+<div id="tab-comm" class="tab-pane active">
+	    				
+<h4><span>{{ headline }}</sp>an>
+    <div class="pull-right">
+        <a class="btn btn-primary " href="{% url 'client_profile_order_edit' pk=object.id %}">
+            <i class="fa fa-edit"></i>
+            Edit</a>
+    	<a class="btn btn-primary" href="#">
+    		End Service</a>              
+	</div>
+</h4>
+
+<table style="table-layout: fixed;" class="table table-user-information">
+<tbody>
+  <tr class="row">
+    <td class="col-xs-2">{% trans 'Service status' %}</td>
+    <td class="col-xs-10">{{ order.get_current_status_display }} 
+	</td>
+  </tr>
+  <tr class="row">
+    <td class="col-xs-2">{% trans 'Service type' %}</td>
+    <td class="col-xs-10">{{ order.get_type_display}}
+	</td>
+  </tr>
+  <tr class="row">
+    <td class="col-xs-2">{% trans 'Service days' %}</td>
+    <td class="col-xs-10"><h4>{% for day in meal_service_days %}
+            {% if day.active and day in order.days.all %}<span class="label label-success">{{ day }}</span>
+            {% else %}<span class="label label-default">{{ day }}</span>
+            {% endif %}
+        {%endfor%}
+        </h4>
+	</td>
+  </tr>
+  <tr class="row">
+    <td class="col-xs-2">{% trans 'Meal defaults' %}</td>
+    <td class="col-xs-10">
+        {{ order.get_meal_defaults_type_display }}
+        
+        <div class="row">
+            <table style="table-layout: fixed;" class="col-xs-12 table table-user-information">
+            <tbody>
+            {% for mealdef in order.get_meal_defaults %}
+            <tr id="tr_id_order-days_{{ day.pk }}" 
+                class="row {%if day.active%}tr-active-day{%else%}tr-everyday{%endif%}"
+                >
+                <td class="col-xs-2">
+                    {{ mealdef.day }}
+                </td>
+                <td class="col-xs-10">
+                    
+                        <div class="row">
+                            
+                        <div class="col-xs-6">
+                            {% for meal in mealdef.meals.all %}
+                                <span class="row">{{ meal.quantity }} {% trans 'Meal' %} {{ meal.get_size_display }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="col-xs-6">
+                            {% for defside in mealdef.mealdefaultside_set.all %}
+                                <span class="row">{{ defside.quantity }} {{ defside.side }}</span> 
+                            {% endfor %}
+                        </div>
+                        </div>
+                    
+                </td>
+            {% endfor %}
+        </table>
+        </div>
+    </td>
+  </tr>
+  
+
+</tbody>
+</table>
+
+</div>
+{% endblock tab-content %}
+{% block javascript_extra_tab %}
+
+<script>
+$(document).ready(function() {
+    
+    {% include 'core/_divmodal_js.html' with button_id='#stop-service' load_url=stop_order_url form_id='#stop-order-form' select_id='#' %}
+});
+</script>
+{% endblock javascript_extra_tab %}
+
+

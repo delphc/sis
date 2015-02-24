@@ -17,7 +17,7 @@ from diplomat.models import ISOLanguage
 
 from contacts.models import Address, ContactEntity, Contact, ContactInfo, SocialWorker
 from users.models import User
-
+#from orders.models import OrderStatusChange
 
 # Contact informations
 
@@ -154,11 +154,13 @@ class Client(ContactEntity):
         today = date.today()
         return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
    
-    def get_order(self):
-        if self.order_set.count() == 0:
-            return None
-        else:
-            return self.order_set.latest(field_name='start_date')
+#     def get_order(self):
+#         qs = OrderStatusChange.objects.filter(order__client=client).order_by("-date")
+#         active_order = list(qs[:1])
+#         if active_order:
+#             return active_order
+#         else:
+#             return None
         
     def get_referral(self):
         if self.referral_set.count() == 0:

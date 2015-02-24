@@ -1,0 +1,27 @@
+[
+{
+	"model": "orders.mealside",
+	"pk": 1,
+    "fields": {
+        "name_en": "Green salad",
+        "name_fr": "Salade verte"
+    }
+},
+{
+	"model": "orders.mealside",
+	"pk": 2,
+    "fields": {
+        "name_en": "Fruit salad",
+        "name_fr": "Salade de fruits"
+    }
+},
+{
+	"model": "orders.mealside",
+	"pk": 3,
+    "fields": {
+        "name_en": "Dessert",
+        "name_fr": "Dessert"
+    }
+}
+
+]

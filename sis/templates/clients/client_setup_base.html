@@ -63,7 +63,7 @@
         <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse2" aria-expanded="false" aria-controls="collapse2">
           #2 - {{ contact_form.helper.form_title }}
           {% if invalid_forms %}
-            {% if contact_form.errors or address_form.errors or phones_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+            {% if contact_form.errors or address_form.errors or phones_form.errors.count %}<i class="fa fa-exclamation-triangle"></i>
             {% else %}<i class="fa fa-check"></i>
             {%endif%}
           {%endif%}
@@ -139,7 +139,7 @@
         <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse-rel" aria-expanded="false" aria-controls="collapse-rel">
           #5 - {% trans 'Contacts' %}
           {% if invalid_forms %}
-            {% if rel_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+            {% if rel_form.errors.count %}<i class="fa fa-exclamation-triangle"></i>
             {% else %}<i class="fa fa-check"></i>
             {%endif%}
           {%endif%}
@@ -192,7 +192,7 @@
                     <div class="container">
                         <div class="row">
                             
-                        {% with day.position as day_pos %}
+                        {% with day.sort_order as day_pos %}
                         <div class="col-xs-6">
                             {% trans 'Select meal defaults' %}
                             {% with meals_form|get_dict_item:day_pos as day_meals_form %}

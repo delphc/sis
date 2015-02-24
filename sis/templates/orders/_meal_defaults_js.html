@@ -3,7 +3,6 @@
 
 	$('#id_{{ order_form.prefix }}-type').change(function(){
           var data=$(this).val();
-          alert(data);
           if (data === 'O') { // for 'next of kin' category
             $('#div_id_{{ order_form.prefix }}-days').show();
             
@@ -17,7 +16,6 @@
     
     $('input[name="{{ order_form.prefix }}-meal_defaults_type"]:radio').change(function(){
           var data = $('input[name="{{ order_form.prefix }}-meal_defaults_type"]:checked').val();
-          alert(data);
           if (data === 'D') { // for day-specific meal defaults
             $('.selected-day').show();
             $('.tr-everyday').hide();
@@ -71,13 +69,13 @@
     //					+ hide tr for inactive day
     
     {% for day in meal_service_days.all %}
-        $(".meal_row_meals_{{day.position}}").formset({
-            prefix: 'meals_{{day.position}}',
+        $(".meal_row_meals_{{day.sort_order}}").formset({
+            prefix: 'meals_{{day.sort_order}}',
             addText: '<i class="fa fa-plus-circle"></i> {% trans "Add meal" %}',
             deleteText: '<i class="fa fa-remove"> {% trans "Remove meal" %}'
         });
-        $(".side_row_mealsides_{{day.position}}").formset({
-            prefix: 'mealsides_{{day.position}}',
+        $(".side_row_mealsides_{{day.sort_order}}").formset({
+            prefix: 'mealsides_{{day.sort_order}}',
             addText: '<i class="fa fa-plus-circle"></i> {% trans "Add side" %}',
             deleteText: '<i class="fa fa-remove"> {% trans "Remove side" %}'
         });

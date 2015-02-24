@@ -78,10 +78,11 @@
 				<li class="tab-pane">
                     <a href="{% url 'client_profile_relationship' pk=object.id %}" >{% trans 'Contacts' %}</a>
                 </li>
+                <li class="tab-pane {% if tab == 'order' %} active {% endif %}">
+                    <a href="{% url 'client_profile_order' pk=object.id %}" >{% trans 'Meal Default' %}</a>
+                </li>
 				{% comment %}
-				<li class="tab-pane {% if tab == 'order' %} active {% endif %}">
-					<a href="{% url 'client_profile_order' pk=object.id %}" >{% trans 'Command' %}</a>
-				</li>
+				
 				
 				<li class="tab-pane">
 					<a href="{% url 'client_profile' tab='meal' pk=object.id %}" >{% trans 'Meal' %}</a>

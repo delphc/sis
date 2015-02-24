@@ -35,7 +35,7 @@ from orders.forms import OrderForm, MealDefaultForm, MealDefaultMealFormSet, Mea
 from .models import Client, Referral, Relationship
 from core.models import PendedForm, PendedValue
 from contacts.models import Address, Phone
-from orders.models import ServiceDay
+from orders.models import Order, ServiceDay, MealDefault
 
 from core.views import AjaxTemplateMixin, ModalMixin, MultipleModalMixin
 
@@ -172,10 +172,16 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             # section relationship
             "rel": RelationshipFormSet,
             # section meal service
-            "order": OrderForm,
-            "mealdef" : MealDefaultForm,
-            "meals" : MealDefaultMealFormSet,
-            "mealsides": MealDefaultSideFormSet
+            "order": OrderForm,            # main settings of meal order
+#            "mealdef" : MealDefaultForm,   # main settings of meal defaults
+            # FORMS["meals"] is actually a formset dict :  
+            # key = meals_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+            # value = MealDefaultMealFormSet instance to set nb and size of meals for this day
+            "meals" : MealDefaultMealFormSet,  
+            # FORMS["meals"] is actually a formset dict :  
+            # key = mealsides_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+            # value = MealDefaultSideFormSet instance to set nb of sides for this day 
+            "mealsides": MealDefaultSideFormSet 
             }
     target_modals = { 'contact_create_url' : 'contact_create' }
     
@@ -185,7 +191,6 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         context = super(ClientSetupView, self).get_context_data(**kwargs)
         
         context['meal_service_days'] = ServiceDay.objects.get_days_for_meal_defaults()
-        context['stooges'] = { 1:"Larry", 2:"Curly", 3:"Moe", 5:"xx", 6:"yy" }
         return context 
     
 #     def get_form_kwargs(self):
@@ -278,7 +283,7 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         meal_forms = {}
         meal_service_days = context['meal_service_days']
         for day in meal_service_days.all():
-            day_form_prefix = form_prefix+"_"+str(day.position)
+            day_form_prefix = form_prefix+"_"+str(day.sort_order)
             if usage == "pend_get":
                 form = self.get_form_pended( day_form_prefix, self.FORMS[form_prefix] )
                 
@@ -288,17 +293,75 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             elif usage == "final_post":
                 form = self.get_form_final( request, day_form_prefix, self.FORMS[form_prefix] )
             
-            meal_forms[day.position] = form
+            meal_forms[day.sort_order] = form
         
         context[form_prefix+"_form"] = meal_forms
         
         return meal_forms
     
     
-    def validate_meal_forms(request, context, form_prefix, meal_forms):
-        for day_position in meal_forms.keys():
-            all_forms_valid = all_forms_valid and meal_forms[day_position].is_valid()
+    def validate_all_meal_forms(self, request, context, all_forms):
+        """
+            No need to validate all meal forms
+            It depends on values entered in order form fields :
+            meal_defaults_type
+                same defaults for everyday -> validate forms corresponding to 'everyday' special service day
+                day-specific -> 
+                    for ongoing service type -> validate forms corresponding to days selected in 'days' field
+                    for episodic service type -> validate forms for each active service day
+                    
+        """
+        all_forms_valid = True
+        order_form = all_forms["order"]
+        service_type = order_form.cleaned_data['type']
+        meal_defaults_type = order_form.cleaned_data['meal_defaults_type']
+        print >>sys.stderr, '***  defaults type  *** %s' % meal_defaults_type
+        selected_days = order_form.cleaned_data['days']
+        print >>sys.stderr, '***  selected days  *** %s' % selected_days
         
+        for form_prefix in self.FORMS.keys():
+            if "meal" in form_prefix:
+                meal_forms = self.get_meal_forms(request, context, form_prefix, "final_post")
+                
+                # build days_sort_order_list depending on values entered in order form fields
+                # This list will determine for which days forms and formset need to be validated
+                # Days not listed will be ignored
+                days_sort_order_list = []
+                if meal_defaults_type == Order.DEFAULTS_TYPE_EVERYDAY['code']:
+                    everyday = ServiceDay.objects.get_meal_service_everyday()
+                    days_sort_order_list.append(everyday.sort_order)
+                else:
+                    if service_type == Order.ONGOING:
+                        for selected_day in selected_days:
+                            days_sort_order_list.append(selected_day.sort_order)
+                    else:
+                        active_days = ServiceDays.objects.get_meal_service_days()
+                        for active_day in active_days.all():
+                            days_sort_order_list.append(active_day.sort_order)
+                    
+                meal_forms_valid = self.validate_meal_forms(context, request, form_prefix, meal_forms, days_sort_order_list)
+                            
+                all_forms_valid = all_forms_valid and meal_forms_valid
+                all_forms[form_prefix] = meal_forms
+                
+        return all_forms_valid
+                    
+                
+    def validate_meal_forms(self, request, context, form_prefix, meal_forms, day_sort_order_list):
+        """
+            The days_sort_order_list indicates for which days forms and formset need to be validated
+            Days not listed will be ignored
+        """
+        #order_form = context['order_form']
+        all_forms_valid = True
+        
+        for day_sort_order in day_sort_order_list:
+            form_valid = meal_forms[day_sort_order].is_valid()
+            if not form_valid:
+                print >>sys.stderr, '***  INVALID form  *** %s - %s - %s' % (form_prefix, str(day_sort_order), meal_forms[day_sort_order].errors)
+                #messages.error(self.request, form.non_field_errors())
+            all_forms_valid = all_forms_valid and form_valid
+            
         return all_forms_valid
        
     def get(self, request, *args, **kwargs):
@@ -312,31 +375,13 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             else:
                 form = self.get_form_pended( form_prefix, self.FORMS[form_prefix] )
                 context[form_prefix+"_form"] = form
-            
-#         data=self.get_pended_data( self.get_import_path(IdentificationForm), self.object.pk)
-#         
-#         if data:
-#             print >>sys.stderr, '***  RETRIEVED pended data *** %s' % data
-#         
-#             id_form = IdentificationForm( prefix="id", **{ 'initial':data }) 
-#         else:
-#             id_form = IdentificationForm( prefix="id", instance=self.object) 
-#         contact_form = FullContactForm( prefix="contact")
-#         comm_form = CommunicationForm(prefix="comm", instance=self.object)
-#        referral_form = ReferralForm(prefix="ref")# target instance (referral) has not been created yet
-        
-        print >>sys.stderr, '***  context  *** %s' % context
-        
+                    
         return self.render_to_response( context )
-#             self.get_context_data(id_form=id_form,
-#                                   contact_form=contact_form,
-#                                   comm_form=comm_form,
-#                                   referral_form=referral_form))
-
 
     
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        context = self.get_context_data()
         
         if self.pend_button_name in self.request.POST:
             #form_class = Identification
@@ -355,24 +400,38 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             all_forms_valid = True
             all_forms = {}
             for form_prefix in self.FORMS.keys():
-                print >>sys.stderr, '***  pend form  *** %s' % form_prefix
-                if "meal" in form_prefix:
-                    meal_forms = meal_forms = self.get_meal_forms(request, context, form_prefix, "final_post")
-                    meal_forms_valid = self.validate_meal_forms(context, request, form_prefix, meal_forms)
-                    all_forms_valid = all_forms_valid and meal_forms_valid
-                    all_forms[form_prefix] = meal_forms
-        
-                else:
+                if "meal" not in form_prefix:
                     form = self.get_form_final( request, form_prefix, self.FORMS[form_prefix] )
-                
-                    all_forms_valid = all_forms_valid and form.is_valid()
+                    form_valid = form.is_valid()
+                    if form_valid:
+                        print >>sys.stderr, '***  valid form  *** %s - %s' % ( form_prefix, form.errors)
+                    else:
+                        print >>sys.stderr, '***  INVALID form  *** %s' % form_prefix
+                        messages.error(self.request, form.non_field_errors())
+                    
+                    #all_forms_valid = all_forms_valid and form.is_valid()
+                    all_forms_valid = all_forms_valid and form_valid
                     all_forms[form_prefix] = form
             
+            meal_forms_valid = self.validate_all_meal_forms(request, context, all_forms)
+            all_forms_valid = all_forms_valid and meal_forms_valid
+                
             if all_forms_valid:
                 return self.form_valid(all_forms)
             else:
                 return self.form_invalid(all_forms)
+
+    def save_meal_default(self, meals_forms, sides_forms, order, day):
+        mealdef = MealDefault(order=order, day=day) 
+        mealdef.save()
         
+        meals_formset = meals_forms[day.sort_order]
+        meals_formset.instance = mealdef
+        meals_formset.save()
+        
+        sides_formset = sides_forms[day.sort_order]
+        sides_formset.instance = mealdef
+        sides_formset.save()
     
     def form_valid(self, all_forms):
         """
@@ -386,10 +445,21 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         comm_form = all_forms['comm']
         referral_form = all_forms['ref']
         relationship_form = all_forms['rel']
+        
         order_form = all_forms['order']        # OrderForm,
-#         mealdef_form = all_forms['mealdef']     # MealDefaultForm, 
-#         sides_form = all_forms['sides']  # MealDefaultSideFormSet
-
+        # mealdef_form is actually a form dict :  
+        # key = meals_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+        # value = MealDefaultForm instance to hold main settings for this day 
+        #mealdef_forms = all_forms['mealdef']     
+        # meals_form is actually a formset dict :  
+        # key = meals_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+        # value = MealDefaultMealFormSet instance to set nb and size of meals for this day 
+        meals_forms = all_forms['meals']
+        # sides_form is actually a formset dict :  
+        # key = mealsides_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+        # value = MealDefaultSideFormSet instance to set nb of sides for this day 
+        sides_forms = all_forms['mealsides']  
+        
         
         self.object = id_form.save()
         comm_form.instance = self.object
@@ -417,18 +487,31 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         relationship_form.instance = self.object
         relationship_form.save()
         
+
         order = order_form.save(commit=False)
         order.client = self.object
         order.save()
         order_form.save_m2m()
         
-#         mealdef = mealdef_form.save(commit=False)
-#         mealdef.order = order
-#         mealdef.save()
-#         
-#         sides_form.instance = mealdef
-#         sides_form.save()
+        meal_defaults_type = order_form.cleaned_data['meal_defaults_type']
+        if meal_defaults_type == Order.DEFAULTS_TYPE_EVERYDAY['code']:
+            # same defaults for every day
+            everyday_serviceday = ServiceDay.objects.get_meal_service_everyday()
+            self.save_meal_default(meals_forms, sides_forms, order, everyday_serviceday)
         
+        else:
+            # different defaults set per day
+            # if service type is ongoing
+            #    need to save one MealDefault for each selected day
+            if order.type == Order.ONGOING:
+                for day in order.days.all():
+                    self.save_meal_default(meals_forms, sides_forms, order, day)
+            # if service type is episodic
+            #    need to save one MealDefault for each active day of meal service
+            else:
+                for day in ServiceDay.get_meal_service_days().all():
+                    self.save_meal_default(meals_forms, sides_forms, order, day)
+                    
         self.object.status = Client.ACTIVE
         self.object.save()
         
@@ -448,65 +531,7 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
     
     
 
-class ClientUpdateView(LoginRequiredMixin, ClientActionMixin, UpdateView):
-    model = Client
-    action = "update" # used for ClientActionMixin functionality
-    form_class = ClientCreateForm
-    #address=AddressFormSet();
-       
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        form.use_for_update()
-        #form.disable_fields()
-        
-        #address = Address.objects.get(client = self.object)
-        address_form = AddressFormSet(prefix="address", instance = self.object)
-        
-        #phones = self.object.phone_set.all()
-        phone_form = HomehoneFormSet(prefix="phones", instance = self.object)
-        
-        return self.render_to_response(
-            self.get_context_data(form=form,
-                                  address_form=address_form,
-                                  phone_form=phone_form))
 
-    # overrides ProcessFormView.post
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        
-        address_form = AddressFormSet(request.POST, prefix="address", instance = self.object)
-        phone_form = HomePhoneFormSet(request.POST,  prefix="phones", instance = self.object)
-        
-        if (form.is_valid() and address_form.is_valid()  and phone_form.is_valid()):
-            return self.form_valid(form, address_form, phone_form)
-        else:
-            return self.form_invalid(form, address_form, phone_form)
-
-    def form_valid(self, form, address_form, phone_form):
-        self.object = form.save(commit=False)
-        self.object.save()
-        
-        instances = address_form.save(commit=False)
-        for address in instances:
-            address.save()
-            
-        phone_instances = phone_form.save(commit = False)
-        for phone in phone_instances:
-            phone.save()
-        
-        return HttpResponseRedirect(self.get_success_url())
-    
-    def form_invalid(self, form, address_form, phone_form):
-        
-        return self.render_to_response(
-            self.get_context_data(form = form,
-                                  address_form = address_form,
-                                  phone_form = phone_form))
 
 class ClientProfileMixin(LoginRequiredMixin, SingleObjectMixin):
     model = Client
@@ -541,7 +566,10 @@ class ClientReferralHeadlineMixin(SetHeadlineMixin):
 
 class ClientRelationshipHeadlineMixin(SetHeadlineMixin):
     headline=_("Relationships")
-    
+
+class ClientOrderHeadlineMixin(SetHeadlineMixin):
+     headline=_("Meal default")
+     
 class ClientProfileIdentificationView(ClientProfileMixin, ClientIdentificationHeadlineMixin, DetailView):
     template_name = "clients/client_profile_identification.html"
     tab = "id"
@@ -644,6 +672,17 @@ class RelationshipEditView(UpdateView):
 class RelationshipDeleteView(DeleteView):
     model = Relationship
     
+class ClientProfileOrderView(ClientProfileMixin, ClientOrderHeadlineMixin, DetailView):
+    template_name = "clients/client_profile_order.html"
+    tab = "order"
+
+    def get_context_data(self, **kwargs):
+        context = super(ClientProfileOrderView, self).get_context_data(**kwargs)
+
+        self.object = self.get_object()
+        context['order']=Order.objects.get_latest_order_for_client(self.object)
+        context['meal_service_days'] = ServiceDay.objects.get_days_for_meal_defaults()
+        return context
     
 class ClientProfileEditMainView(ClientProfileMixin, FormView):
     success_url = ''
@@ -835,185 +874,35 @@ class ClientProfileEditReferralView(MultipleModalMixin, ClientReferralHeadlineMi
             'instance': referral
         })
         return kwargs  
-    
-class ClientProfileView(LoginRequiredMixin, UpdateView):
-    model = Client
-    #template_name = 'clients/client_profile.html'
-    tab = 'id'
-    form_class=IdentificationForm
-    
-        
-    def get_form_class(self):
-        if self.kwargs['tab'] == 'id':
-            form_class=IdentificationForm
-        elif self.kwargs['tab'] == 'comm':
-            form_class=CommunicationForm
-        elif self.kwargs['tab'] == 'ref':
-            form_class=ReferralForm
-        else:
-            raise ImproperlyConfigured('ClientProfileView requires form class for tab %s' % self.kwargs['tab'])
-        
-        return form_class
-    
-    def get_template_names(self):
-        if self.kwargs['tab'] == 'id':
-            return 'clients/client_identification.html'
-        elif self.kwargs['tab'] == 'comm':
-            return 'clients/client_communication.html'
-        elif self.kwargs['tab'] == 'ref':
-            return 'clients/client_referral.html'
-        else:
-            raise ImproperlyConfigured('ClientProfileView requires template name for tab %s' % self.kwargs['tab'])
-    
-    def get_success_url(self):
-         return reverse_lazy('client_profile', kwargs={'tab': self.kwargs['tab'], 'pk':str(self.get_object().id)})
 
-    def get_form_kwargs(self):
-        """
-        Returns the keyword arguments for instantiating the form.
-        """
-        kwargs = super(ClientProfileView, self).get_form_kwargs()
-        kwargs.update({
-                'lang': self.request.LANGUAGE_CODE,
-                });
-        if self.kwargs['tab'] == 'ref' and hasattr(self, 'object'):
-             kwargs.update({'instance': self.object.referral_set.latest(field_name='ref_date') })
-            
-        return kwargs   
+class ClientProfileEditOrderView(MultipleModalMixin, ClientOrderHeadlineMixin, ClientProfileEditMainView):
+    template_name = "clients/client_profile_order_edit.html"
+    form_classes = {
+                    "order" : OrderForm
+                    }
+    tab = "order"
+    success_url = 'client_profile_order'
+    target_modals = { 'stop_order_url' : 'stop_order' }
     
     def get_context_data(self, **kwargs):
-        logger.error('*** get_context_data: ENTERING ***!')
-        context = super(ClientProfileView, self).get_context_data(**kwargs)
-         
-        self.object = self.get_object()
-        
-        context['tab']=self.kwargs['tab']
-        contact_info = self.object.get_contact_info()
-        address = contact_info.get_address()
-        context['address'] = address
-        phones = contact_info.get_phones()
-        context['phones'] = phones
-        
-        if self.kwargs['tab'] == 'ref':
-            referral = self.object.referral_set.latest(field_name='ref_date')
-            print >>sys.stderr, '*** put referral into context *** %s' % referral.reasons.all() 
-            context['referral']  = self.object.referral_set.latest(field_name='ref_date')
-#         # History tab ---------------------------------------
-#         client_type=ContentType.objects.get_for_model(self.object)
-#         # search with object_pk because object_id does not work (set to null)
-#         logEntries = LogEntry.objects.filter(content_type__pk=client_type.id, object_pk=self.object.id)
-#         
-#         address_type = ContentType.objects.get_for_model(address)
-#         address_logEntries = LogEntry.objects.filter(content_type__pk=address_type.id, object_pk=address.id)
-#         
-#         
-#         context['logEntries'] = logEntries
-#         context['address_logEntries'] = address_logEntries
-         
-        return context
-     
-    def get(self, request, *args, **kwargs):
-        print >>sys.stderr, '*** ENTERING GET **** tab = [%s]' % self.kwargs['tab']
-        
-        self.object = self.get_object()
-            
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        if self.kwargs['tab'] == "comm":
-            phone_form = HomePhoneFormSet(prefix="phones", instance = self.object)
-            phone_form_helper = PhoneFormSetHelper()
-        else:
-            phone_form = None
-            phone_form_helper = None
-        
-        if self.kwargs['tab'] == "ref":
-            contact_form = ContactCreateForm(prefix="contact")
-            contact_phone_form = HomePhoneFormSet(prefix="phones") #, instance = self.object.referral_set.latest(field_name='ref_date').contact)
-            contact_phone_form_helper = PhoneFormSetHelper()
-        else:
-            contact_form = None
-            contact_phone_form = None
-            contact_phone_form_helper = None
-            
-        return self.render_to_response(
-            self.get_context_data(form=form, 
-                                  phone_form=phone_form, 
-                                  phone_form_helper=phone_form_helper,
-                                  contact_form=contact_form,
-                                  contact_phone_form=contact_phone_form,
-                                  contact_phone_form_helper=contact_phone_form_helper))
+        context = super(ClientProfileEditOrderView, self).get_context_data(**kwargs)
 
-        
-    def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        print >>sys.stderr, '*** ENTERING POST ****'
-        
-        if 'cancel' in request.POST:
-            return HttpResponseRedirect(self.get_success_url())
-        
-        print >>sys.stderr, '*** submit form [%s] POST ****' % self.kwargs['tab']
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        #inline_forms = {}
-        if self.kwargs['tab'] == "comm":
-            phone_form = HomePhoneFormSet(request.POST,  prefix="phones", instance = self.object)
-        else:
-            phone_form = None
-            
-        print >>sys.stderr, 'data *** %s ****' % form.data
-        forms_valid = form.is_valid()
-        if phone_form != None:
-            forms_valid = forms_valid and phone_form.is_valid()
-        #for inline_form_name in inline_forms.keys():
-        #    forms_valid = forms_valid and inline_forms[inline_form_name].is_valid()
-            
-        # validate
-        if forms_valid:
-            return self.form_valid(form, phone_form, **kwargs)
-            
-        else:
-            return self.form_invalid(form, phone_form, **{'phone_form_helper':PhoneFormSetHelper()})
-        
-    def form_valid(self, form, phone_form, **kwargs):
-        print >>sys.stderr, '*** form_valid ****' 
-        
-        if self.kwargs['tab'] == "ref":
-            print >>sys.stderr, '*** save referral form****'
-            referral = form.save(commit=False)
-            form.save_m2m()
-            referral.save()
-        else:
-            self.object = form.save(commit=False)
-            form.save_m2m()
-            self.object.save()
-        
-        if phone_form != None:
-            print >>sys.stderr, '*** save phone form****'
-            phone_instances = phone_form.save(commit = False)
-            for phone in phone_instances:
-                print >>sys.stderr, '*** save phone ****'
-                phone.save()
-            
-            for old_phone in phone_form.deleted_objects:
-                print >>sys.stderr, '*** delete phone ****'
-                old_phone.delete()
-#         for inline_form_name in inline_forms.keys():
-#             form_instances = inline_forms[inline_form_name].save(commit=False)
-#             for instance_target_object in form_instances:
-#                 instance_target_object.save()
-        #context["form"]=form
-        #context[""]
-        #return  render(request, 'accounts/account.html', context) 
-        return HttpResponseRedirect(self.get_success_url())
+        context['order']=Order.objects.get_latest_order_for_client(self.object)
+        context['meal_service_days'] = ServiceDay.objects.get_days_for_meal_defaults()
+        return context
     
-    #def form_invalid(self, form, inline_forms):
-    def form_invalid(self, form, phone_form, **kwargs):
-        print >>sys.stderr, '*** form_invalid **** %s' % form.errors
+    
+    def get_form_kwargs(self, prefix):
+        kwargs = super(ClientProfileEditOrderView, self).get_form_kwargs(prefix)
         
-        return self.render_to_response(
-            self.get_context_data(form = form,
-                                  phone_form = phone_form,
-                                  **kwargs))
+        order = Order.objects.get_latest_order_for_client(self.get_object())
+        
+        kwargs.update({
+            'instance': order
+        })
+        return kwargs
+        
 
 class ClientProfileMainView(LoginRequiredMixin, UpdateView):
     def get_form_kwargs(self):
@@ -1027,146 +916,4 @@ class ClientProfileMainView(LoginRequiredMixin, UpdateView):
             
         return kwargs 
      
-class ClientReferralView(LoginRequiredMixin, UpdateView):
-    model = Client
-    template_name = 'clients/client_referral.html'
-    form_class=ReferralForm
-    tab='ref'
-    
-    def get_success_url(self):
-         return reverse_lazy('client_profile_referral', kwargs={'pk':str(self.get_object().id)})
-    
-    def get_referral(self):
-        return self.get_object().get_referral()
-        
-    def get_context_data(self, **kwargs):
-        logger.error('*** get_context_data: ENTERING ***!')
-        context = super(ClientReferralView, self).get_context_data(**kwargs)
-        
-        # get client instance
-        self.object = self.get_object() # self.object = Referral object
-        
-        context['tab']=self.tab
-        address = self.object.address.all()[0]
-        context['address'] = address
-        phones = self.object.phones.all()
-        context['phones'] = phones
-        
-        context['referral']  = self.get_referral()
-#         # History tab ---------------------------------------
-#         client_type=ContentType.objects.get_for_model(self.object)
-#         # search with object_pk because object_id does not work (set to null)
-#         logEntries = LogEntry.objects.filter(content_type__pk=client_type.id, object_pk=self.object.id)
-#         
-#         address_type = ContentType.objects.get_for_model(address)
-#         address_logEntries = LogEntry.objects.filter(content_type__pk=address_type.id, object_pk=address.id)
-#         
-#         
-#         context['logEntries'] = logEntries
-#         context['address_logEntries'] = address_logEntries
-         
-        return context
-    
-    def get_form_kwargs(self):
-        """
-        Returns the keyword arguments for instantiating the form.
-        """
-        kwargs = super(ClientReferralView, self).get_form_kwargs()
-        kwargs.update({
-                'lang': self.request.LANGUAGE_CODE,
-                });
-        if hasattr(self, 'object'):
-             kwargs.update({'instance': self.get_referral() })
-            
-        return kwargs   
-    
-    def get(self, request, *args, **kwargs):
-        print >>sys.stderr, '*** ENTERING GET ****' 
-        
-        self.object = self.get_object()
-        
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        
-        contact_form = ContactCreateForm(prefix="contact")
-        contact_phone_form = HomePhoneFormSet(prefix="phones") 
-        contact_phone_form_helper = PhoneFormSetHelper()
-        
-        print >>sys.stderr, '*** GET - render to response  ****' 
-        
-        return self.render_to_response(
-            self.get_context_data(form=form, 
-                                  contact_form=contact_form,
-                                  contact_phone_form=contact_phone_form,
-                                  contact_phone_form_helper=contact_phone_form_helper))
-
-        
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        print >>sys.stderr, '*** ENTERING POST ClientReferralView ****'
-        
-        if 'cancel' in request.POST:
-            return HttpResponseRedirect(self.get_success_url())
-        
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        
-        referral = self.get_context_data()['referral']
-        
-        contact_form = ContactCreateForm(request.POST, prefix="contact", instance=referral)
-        contact_phone_form = HomePhoneFormSet(request.POST, prefix="phones", instance=referral.contact) #, instance = self.object.referral_set.latest(field_name='ref_date').contact)
-        
-        forms_valid = form.is_valid()
-        if forms_valid:
-            return self.form_valid(form, **{'contact_form':contact_form, 'contact_phone_form':contact_phone_form})
-            
-        else:
-            return self.form_invalid(form, **{'contact_form':contact_form, 'contact_phone_form':contact_phone_form})
-        
-    def form_valid(self, form, **kwargs):
-        print >>sys.stderr, '*** form_valid ClientReferralView****' 
-        
-        referral = form.save(commit=False)
-        #form.save_m2m()
-        print >>sys.stderr, '*** referral.contact:[%s] ****' % referral.contact
-        referral.save()
-        
-        print >>sys.stderr, '** referral form contact [%s] **' % form.cleaned_data['contact']
-        
-        contact_form = kwargs['contact_form']
-        print >>sys.stderr, '*** contact_form.data:[%s] ****' % contact_form.data
-        print >>sys.stderr, '*** contact_form.initial:[%s]' % contact_form.initial
-        contact_phone_form = kwargs['contact_phone_form']
-#         if contact_form != None: # Adding a new contact
-#             print >>sys.stderr, '*** adding NEW CONTACT ****'
-#                 
-#             contact = contact_form.save()
-#             contact.save()
-#              
-#             if contact_phone_form != None:
-#                 print >>sys.stderr, '*** save phone form****'
-#                 phone_instances = contact_phone_form.save(commit = False)
-#                 for phone in phone_instances:
-#                     print >>sys.stderr, '*** save phone ****'
-#                     phone.save()
-#                 
-#                 for old_phone in contact_phone_form.deleted_objects:
-#                     print >>sys.stderr, '*** delete phone ****'
-#                     old_phone.delete()
-#                 
-#             referral.contact = contact
-#             referral.save()
-#         else:
-#             print >>sys.stderr, '*** CONTACT FORM is null ****'
-            
-        return HttpResponseRedirect(self.get_success_url())
-    
-    #def form_invalid(self, form, inline_forms):
-    def form_invalid(self, form, **kwargs):
-        print >>sys.stderr, '*** form_invalid **** %s' % form.errors
-        
-        return self.render_to_response(
-            self.get_context_data(form = form,
-                                  **kwargs))
-        
     

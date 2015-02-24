@@ -1,5 +1,6 @@
 #-*- coding: utf-8 -*-
 import datetime
+import sys
 from datetime import date
 
 from django.db import models
@@ -18,11 +19,12 @@ from auditlog.registry import auditlog
 from auditlog.models import AuditlogHistoryField
 from diplomat.fields import LanguageChoiceField
 
+from core.models import TranslatedModel
 from clients.models import Client
 
 # Contact informations
 
-class StatusReasonCode(models.Model):
+class StatusReasonCode(TranslatedModel):
     OTHER = "other"
     
     slug = models.SlugField()
@@ -30,12 +32,7 @@ class StatusReasonCode(models.Model):
     desc_fr = models.CharField(max_length=30)
 
     def __unicode__(self):
-        lg = translation.get_language()
-        
-        if lg == "en":
-            return self.desc_en
-        else:
-            return self.desc_fr
+        return self.get_translated_field('desc')
 
 class ServiceDayManager(models.Manager):
     
@@ -53,9 +50,9 @@ class ServiceDayManager(models.Manager):
             )
     
     def get_meal_service_everyday(self):
-        return super(ServiceDayManager, self).get()
+        return super(ServiceDayManager, self).filter(service_type=ServiceDay.MEAL).get(slug=ServiceDay.SLUG_EVERYDAY)
     
-class ServiceDay(models.Model):
+class ServiceDay(TranslatedModel):
     SLUG_EVERYDAY="everyday_meal" # DO NOT CHANGE
     MEAL='M'
     SERVICE_TYPE = (
@@ -66,33 +63,32 @@ class ServiceDay(models.Model):
     name_fr = models.CharField(max_length=30)
     service_type = models.CharField(max_length=1, choices=SERVICE_TYPE, default=MEAL)
     active = models.BooleanField(default=False)
-    position = models.PositiveIntegerField()
+    sort_order = models.PositiveIntegerField()
     
     objects = ServiceDayManager()
     
     class Meta:
-        unique_together = ("service_type", "position")
-        ordering = ['position']
+        unique_together = ("service_type", "sort_order")
+        ordering = ['sort_order']
         
     def __unicode__(self):
-        lg = translation.get_language()
-        
-        if lg == "en":
-            return self.name_en
-        else:
-            return self.name_fr
+        return self.get_name()
 
-# HOW TO ADD A NEW DELIVERY DAY
-# ----------------------------------
-# 1. add a BooleanField to Order model (use monday field as example)
-# 2. add a choice to DeliveryDefault.DELIVERY_DAYS 
-# 3. add field to OrderForm (see orders/forms.py
-# 4. add field to templates/clients/client_order.html
+class OrderManager(models.Manager):
+    def get_latest_order_for_client(self, client):
+        qs = OrderStatusChange.objects.filter(order__client=client).order_by("-date")
+                
+        latest_entry = list(qs[:1])
+        if latest_entry:
+            return latest_entry[0].order
+        else:
+            return None
+        
 class Order(TimeStampedModel):
+    objects = OrderManager()
     history = AuditlogHistoryField()
     
     client = models.ForeignKey(Client)
-    
     
     EPISODIC = 'E'
     ONGOING = 'O'
@@ -110,89 +106,127 @@ class Order(TimeStampedModel):
     STATUS_INACTIVE = _('Inactive')
     
     days = models.ManyToManyField(ServiceDay, verbose_name=_("Service days"), limit_choices_to={'active': True, 'service_type':ServiceDay.MEAL})
-     
+    
+    
+    DEFAULTS_TYPE_EVERYDAY= { 'code' :'A', 'display':_('Same for everyday') }
+    DEFAULTS_TYPE_DAY= { 'code' :'D', 'display':_('Day-specific') }
+    DEFAULTS_TYPE_CHOICES = (
+                             (DEFAULTS_TYPE_EVERYDAY['code'], DEFAULTS_TYPE_EVERYDAY['display']),
+                             (DEFAULTS_TYPE_DAY['code'], DEFAULTS_TYPE_DAY['display'])
+                             )
+    
+    
     def __unicode__(self):
-        return _(u'%(status)s / %(start)s') % {'status':self.get_current_status(), 'start': self.start_date }
+        return _(u'%(status)s') % {'status':self.get_current_status_code() }
+    
+    def is_pending(self):
+        return self.get_current_status_code() == OrderStatusChange.PENDING
     
     def is_active(self):
-        return self.get_current_status() == self.STATUS_ACTIVE
+        return self.get_current_status_code() == OrderStatusChange.ACTIVE
     
     def is_stopped(self):
-        return self.get_current_status() == self.STATUS_STOPPED
+        return self.get_current_status_code() == OrderStatusChange.STOPPED
     
-    def is_stopped(self):
-        return self.get_current_status() == self.STATUS_INACTIVE
+    def is_deactivated(self):
+        return self.get_current_status_code() == OrderStatusChange.DEACTIVATED
     
-    def get_current_status(self):
-        if (self.end_date != None):
-            return self.STATUS_ACTIVE
-        
-        stops = self.orderstop_set.filter(
-                    start_date__lt=datetime.datetime.now()).filter(
-                    end_date__gt=datetime.datetime.now())
-                    
-        
-        if (stops.count() != 0):
-            return self.STATUS_STOPPED
-        
-        return self.STATUS_ACTIVE   
+    def get_current_status_code(self):
+        return self.get_current_status()[0]
     
-    def has_stop(self):
-        stops = self.orderstop_set.filter(
-                    end_date__gte=datetime.datetime.now())
-        if stops.count() != 0:
-            return True
-        else:
-            return False
+    def get_current_status_display(self):
+        return self.get_current_status()[1]
 
-    def get_stop(self):
-        return self.orderstop_set.filter(
-                    end_date__gte=datetime.datetime.now()).order_by('start_date').first()
+    def get_current_status(self):
+        qs = self.status.filter(date__lte=date.today()).order_by('-date')
+         
+        active_entry = list(qs[:1])
+        if active_entry:
+            return OrderStatusChange.ORDER_STATUS[active_entry[0].type]
+        else:
+            return OrderStatusChange.ORDER_STATUS[OrderStatusChange.NO_ENTRY]
+    
+    def _get_meal_defaults_type(self):
+        # default is meal_defaults_type
+        if not hasattr(self, 'meal_defaults_type'):
+            print >>sys.stderr, '***  INIT meal_defaults_type ***'
+            mealdefaults = self.get_meal_defaults()
+            if mealdefaults.count() == 1:
+                mealdefault = mealdefaults[0]
+                if mealdefault.day.slug == ServiceDay.SLUG_EVERYDAY:
+                    self.meal_defaults_type = self.DEFAULTS_TYPE_EVERYDAY
+                else:
+                    self.meal_defaults_type = self.DEFAULTS_TYPE_DAY 
+            else:
+                self.meal_defaults_type = self.DEFAULTS_TYPE_DAY
+        else:
+            print >>sys.stderr, '***  ALREADY SET meal_defaults_type ***'
                     
-    def get_delivery_default(self):
-        return self.deliverydefault_set.get(day=DeliveryDefault.ALL)
+        return self.meal_defaults_type
+    
+    def get_meal_defaults_type_display(self):
+        return self._get_meal_defaults_type()['display']
+    
+    def get_meal_defaults_type_code(self):
+        return self._get_meal_defaults_type()['code']
+            
+    def get_meal_defaults(self):
+        return self.mealdefault_set.order_by('day__sort_order').all()
+    
+    
+    
+#     
+#     def has_stop(self):
+#         stops = self.orderstop_set.filter(
+#                     end_date__gte=datetime.datetime.now())
+#         if stops.count() != 0:
+#             return True
+#         else:
+#             return False
+# 
+#     def get_stop(self):
+#         return self.orderstop_set.filter(
+#                     end_date__gte=datetime.datetime.now()).order_by('start_date').first()
+#                     
+#     def get_delivery_default(self):
+#         return self.deliverydefault_set.get(day=DeliveryDefault.ALL)
 
 
         
 class OrderStatusChange(TimeStampedModel):
-    order = models.ForeignKey(Order)
+    order = models.ForeignKey(Order, related_name='status')
+    
+    ACTIVATE = 'A' # initial start
+    STOP = 'P'  # temporary stop
+    RESUME = 'R' # resume after temporary stop
+    END = 'E' # final stop (order cannot be reactivated past this status change
+    CHANGE_TYPES = (
+                    (ACTIVATE,_('Activate')),
+                    (STOP, _('Stop')),
+                    (RESUME, _('Resume')),
+                    (END, _('Stop'))
+                    )
+    # Order status corresponing to the current OrderStatusChange active (ie. date < today)
+    NO_ENTRY='NO_ENTRY'
+    PENDING='P'
+    ACTIVE='A'
+    STOPPED='S'
+    DEACTIVATED='D'
+    ORDER_STATUS = {
+                    NO_ENTRY: (PENDING, _('Pending')),
+                    ACTIVATE: (ACTIVE, _('Active')),
+                    STOP: (STOPPED, _('Stopped')),
+                    RESUME: (ACTIVE, _('Active')),
+                    END: (DEACTIVATED, _('Deactivated'))
+                    }
+    type = models.CharField(max_length=1, choices=CHANGE_TYPES, default=ACTIVATE)
     date = models.DateField()
     reason_code = models.ForeignKey(StatusReasonCode)
     
+    class Meta:
+        unique_together = ('order', 'type', 'date')
+        ordering = ['date']
     
-# class OrderStop(models.Model):
-#     
-#     order = models.ForeignKey(Order)
-#     start_date = models.DateField()
-#     end_date = models.DateField()
-#     reason_code = models.ForeignKey(StatusReasonCode)
-#     reason_other = models.CharField(max_length=100, blank=True)
-#     
-#     def single_day(self):
-#         self.end_date=self.start_date
-#     
-#     def is_single_day(self):  
-#         return self.end_date == self.start_date
-#     
-#     def clean(self):       
-#         if (self.reason_code.slug == StatusReasonCode.OTHER and self.reason_other == ''):
-#             raise ValidationError({'reason_other': _('You must precise the reason for this change of status')})
-#         
-#     def display_dates(self):
-#         single_day = self.is_single_day()
-#         if single_day:
-#             return _(u'Order stopped on %(start)s') % { 'start' : self.start_date }
-#         else:
-#             return _(u'Order stopped from %(start)s to %(end)s') % { 'start' : self.start_date, 'end': self.end_date }
-#     
-#     def display_reason(self):
-#         lg = translation.get_language()
-#         if self.reason_other != '':
-#             return self.reason_other
-#         if lg == "en":
-#             return self.reason_code.desc_en
-#         else:
-#             return self.reason_code.desc_fr
       
 class MealSide(models.Model):
     name_en = models.CharField(max_length=30)
@@ -215,7 +249,7 @@ class MealDefault(TimeStampedModel):
         return self.day.name_en
 
 class MealDefaultMeal(TimeStampedModel):   
-    meal = models.ForeignKey(MealDefault)
+    meal = models.ForeignKey(MealDefault, related_name='meals')
     
     HALF = 'H'
     REG = 'R'

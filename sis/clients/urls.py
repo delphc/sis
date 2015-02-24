@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from django.conf.urls import patterns, url
 
-from clients.views import ClientListView,  ClientCreateView, ClientSetupView, ClientUpdateView, ClientProfileView, ClientReferralView
-from clients.views import ClientProfileIdentificationView, ClientProfileContactView, ClientProfileCommunicationView, ClientProfileReferralView, ClientProfileRelationshipView
-from clients.views import ClientProfileEditIdentificationView, ClientProfileEditContactView, ClientProfileEditCommunicationView, ClientProfileEditReferralView
+from clients.views import ClientListView,  ClientCreateView, ClientSetupView
+from clients.views import ClientProfileIdentificationView, ClientProfileContactView, ClientProfileCommunicationView, ClientProfileReferralView, ClientProfileRelationshipView, ClientProfileOrderView
+from clients.views import ClientProfileEditIdentificationView, ClientProfileEditContactView, ClientProfileEditCommunicationView, ClientProfileEditReferralView, ClientProfileEditOrderView
 from clients.views import ClientRelationshipListView, RelationshipCreateView, RelationshipEditView, RelationshipDeleteView
+
 
 urlpatterns = patterns('clients.views',
     url(
@@ -12,11 +13,6 @@ urlpatterns = patterns('clients.views',
         view=ClientListView.as_view(),
         name='client_list'
     ),
-#     url(
-#         regex=r'^clients_data_110$',
-#         view=ClientListViewJson.as_view(),
-#         name='client_list_json'
-#     ),
     
     url(
         regex=r'^create/$',
@@ -65,6 +61,11 @@ urlpatterns = patterns('clients.views',
         name='client_relationship_list'
     ),
     url(
+        regex=r'^profile/order/(?P<pk>\d+)$',
+        view=ClientProfileOrderView.as_view(),
+        name='client_profile_order'
+    ),
+    url(
         regex=r'^rel/(?P<pk>\d+)/create$', # pk of client
         view=RelationshipCreateView.as_view(),
         name='relationship_create'
@@ -98,28 +99,12 @@ urlpatterns = patterns('clients.views',
         regex=r'^profile/ref/(?P<pk>\d+)/edit$',
         view=ClientProfileEditReferralView.as_view(),
         name='client_profile_referral_edit'
-    ),             
+    ), 
     url(
-        regex=r'^profile/(?P<tab>\w+)/(?P<pk>\d+)$',
-        view=ClientProfileView.as_view(),
-        name='client_profile_o'
-    ),
-    url(
-        regex=r'^profile/(?P<pk>\d+)/referral$',
-        view=ClientReferralView.as_view(),
-        name='client_profile_referral_o'
-    ),
-    
-#     url(
-#         regex=r'^profile/(?P<pk>\d+)/order$',
-#         view=ClientOrderView.as_view(),
-#         name='client_profile_order_o'
-#     ),
-    url(
-        regex=r'^update/(?P<pk>\d+)$',
-        view=ClientUpdateView.as_view(),
-        name='client_update'
-    ),
-                       
+        regex=r'^profile/order/(?P<pk>\d+)/edit$',
+        view=ClientProfileEditOrderView.as_view(),
+        name='client_profile_order_edit'
+    )   
+             
 
 )

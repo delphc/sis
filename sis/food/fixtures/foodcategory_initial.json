@@ -1,0 +1,119 @@
+[
+{
+	"model": "food.foodcategory",
+	"pk": 1,
+    "fields": {
+    	"slug": "allergies",
+        "name_en": "Allergies",
+        "name_fr": "Allergies",
+        "description_en": "Client's allergies ingredients",
+        "description_en": "Ingrédients auxquels le client est allergique",
+        "sort_order" : "10"
+    }
+},
+{
+	"model": "food.foodcategory",
+	"pk": 2,
+    "fields": {
+    	"slug": "diabetic",
+        "name_en": "Diabetic",
+        "name_fr": "Diabète",
+        "description_en": "Ingredients that are not recommended for diabetics",
+        "description_en": "Ingrédients à éviter pour les diabétiques",
+        "sort_order" : "20"
+    }
+},
+
+{
+	"model": "food.foodcategory",
+	"pk": 3,
+    "fields": {
+    	"slug": "gluten",
+        "name_en": "Gluten intolerance",
+        "name_fr": "Gluten intolerance",
+        "description_en": "Gluten intolerance",
+        "description_en": "Gluten intolerance",
+        "sort_order" : "30"
+    }
+},
+
+{
+	"model": "food.foodcategory",
+	"pk": 4,
+    "fields": {
+    	"slug": "meat",
+        "name_en": "Meat",
+        "name_fr": "Viande",
+        "description_en": "Meat",
+        "description_en": "Viande",
+        "sort_order" : "40"
+    }
+},
+
+{
+	"model": "food.foodcategory",
+	"pk": 5,
+    "fields": {
+    	"slug": "dairy",
+        "name_en": "Dairy",
+        "name_fr": "Produits laitiers",
+        "description_en": "Dairy",
+        "description_en": "Produits laitiers",
+        "sort_order" : "50"
+    }
+},
+
+{
+	"model": "food.foodcategory",
+	"pk": 6,
+    "fields": {
+    	"slug": "seafood",
+        "name_en": "Seafood",
+        "name_fr": "Fruits de mer",
+        "description_en": "Seafood",
+        "description_en": "Fruits de mer",
+        "sort_order" : "60"
+    }
+},
+
+{
+	"model": "food.foodcategory",
+	"pk": 7,
+    "fields": {
+    	"slug": "fish",
+        "name_en": "Fish",
+        "name_fr": "Poisson",
+        "description_en": "Fish",
+        "description_en": "Poisson",
+        "sort_order" : "70"
+    }
+},
+
+{
+	"model": "food.foodcategory",
+	"pk": 8,
+    "fields": {
+    	"slug": "legumes",
+        "name_en": "Legumes",
+        "name_fr": "Legumineuses",
+        "description_en": "Legumes",
+        "description_en": "Legumineuses",
+        "sort_order" : "80"
+    }
+    
+},
+{
+	"model": "food.foodcategory",
+	"pk": 9,
+    "fields": {
+    	"slug": "grains",
+        "name_en": "Grains",
+        "name_fr": "Céréales",
+        "description_en": "Grains",
+        "description_en": "Céréales",
+        "sort_order" : "90"
+    }
+    
+}
+
+]
