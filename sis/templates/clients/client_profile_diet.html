@@ -1,0 +1,31 @@
+{% extends 'clients/base_profile.html' %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+
+{% load crispy_forms_tags %}
+{% load verbose_names %}
+{% load core_filters %}
+
+
+
+{% block tab-content %}
+<div id="tab-comm" class="tab-pane active">
+	    				
+<h4><span>{{ headline }}</span>
+	
+</h4>
+
+<table class="table table-user-information">
+<tbody>
+  <tr>
+    <td></td>
+    <td>
+	</td>
+  </tr>
+  
+</tbody>
+</table>
+
+</div>
+{% endblock tab-content %}
+

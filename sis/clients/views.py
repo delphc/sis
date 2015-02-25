@@ -30,13 +30,14 @@ from .forms import  ClientCreateForm, ClientSetupForm, IdentificationForm, Commu
 
 from contacts.forms import  ContactInfoForm, AddressForm, AddressFormSet, AddressFormSetHelper, HomePhoneFormSet,  PhoneFormSetHelper
 from orders.forms import OrderForm, MealDefaultForm, MealDefaultMealFormSet, MealDefaultSideFormSet
+from food.forms import DietForm
 
 # Import the customized User model
 from .models import Client, Referral, Relationship
 from core.models import PendedForm, PendedValue
 from contacts.models import Address, Phone
 from orders.models import Order, ServiceDay, MealDefault
-
+from food.models import DietaryProfile, Restriction, FoodIngredient, FoodCategory
 from core.views import AjaxTemplateMixin, ModalMixin, MultipleModalMixin
 
 logger = logging.getLogger(__name__)
@@ -173,15 +174,16 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             "rel": RelationshipFormSet,
             # section meal service
             "order": OrderForm,            # main settings of meal order
-#            "mealdef" : MealDefaultForm,   # main settings of meal defaults
-            # FORMS["meals"] is actually a formset dict :  
+#           # FORMS["meals"] is actually a formset dict :  
             # key = meals_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
             # value = MealDefaultMealFormSet instance to set nb and size of meals for this day
             "meals" : MealDefaultMealFormSet,  
             # FORMS["meals"] is actually a formset dict :  
             # key = mealsides_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
             # value = MealDefaultSideFormSet instance to set nb of sides for this day 
-            "mealsides": MealDefaultSideFormSet 
+            "mealsides": MealDefaultSideFormSet,
+            # section Dietary Restrictions
+            "diet": DietForm
             }
     target_modals = { 'contact_create_url' : 'contact_create' }
     
@@ -569,6 +571,9 @@ class ClientRelationshipHeadlineMixin(SetHeadlineMixin):
 
 class ClientOrderHeadlineMixin(SetHeadlineMixin):
      headline=_("Meal default")
+
+class ClientDietHeadlineMixin(SetHeadlineMixin):
+     headline=_("Dietary restrictions")
      
 class ClientProfileIdentificationView(ClientProfileMixin, ClientIdentificationHeadlineMixin, DetailView):
     template_name = "clients/client_profile_identification.html"
@@ -683,6 +688,18 @@ class ClientProfileOrderView(ClientProfileMixin, ClientOrderHeadlineMixin, Detai
         context['order']=Order.objects.get_latest_order_for_client(self.object)
         context['meal_service_days'] = ServiceDay.objects.get_days_for_meal_defaults()
         return context
+
+class ClientProfileDietView(ClientProfileMixin, ClientDietHeadlineMixin, DetailView):
+    template_name = "clients/client_profile_diet.html"
+    tab = "diet"
+
+    def get_context_data(self, **kwargs):
+        context = super(ClientProfileDietView, self).get_context_data(**kwargs)
+
+        self.object = self.get_object()
+        #context['diet']=self.object.dietaryprofile
+        
+        return context  
     
 class ClientProfileEditMainView(ClientProfileMixin, FormView):
     success_url = ''
@@ -902,7 +919,8 @@ class ClientProfileEditOrderView(MultipleModalMixin, ClientOrderHeadlineMixin, C
             'instance': order
         })
         return kwargs
-        
+
+
 
 class ClientProfileMainView(LoginRequiredMixin, UpdateView):
     def get_form_kwargs(self):

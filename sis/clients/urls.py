@@ -2,7 +2,7 @@
 from django.conf.urls import patterns, url
 
 from clients.views import ClientListView,  ClientCreateView, ClientSetupView
-from clients.views import ClientProfileIdentificationView, ClientProfileContactView, ClientProfileCommunicationView, ClientProfileReferralView, ClientProfileRelationshipView, ClientProfileOrderView
+from clients.views import ClientProfileIdentificationView, ClientProfileContactView, ClientProfileCommunicationView, ClientProfileReferralView, ClientProfileRelationshipView, ClientProfileOrderView, ClientProfileDietView
 from clients.views import ClientProfileEditIdentificationView, ClientProfileEditContactView, ClientProfileEditCommunicationView, ClientProfileEditReferralView, ClientProfileEditOrderView
 from clients.views import ClientRelationshipListView, RelationshipCreateView, RelationshipEditView, RelationshipDeleteView
 
@@ -64,6 +64,11 @@ urlpatterns = patterns('clients.views',
         regex=r'^profile/order/(?P<pk>\d+)$',
         view=ClientProfileOrderView.as_view(),
         name='client_profile_order'
+    ),
+    url(
+        regex=r'^profile/diet/(?P<pk>\d+)$',
+        view=ClientProfileDietView.as_view(),
+        name='client_profile_diet'
     ),
     url(
         regex=r'^rel/(?P<pk>\d+)/create$', # pk of client

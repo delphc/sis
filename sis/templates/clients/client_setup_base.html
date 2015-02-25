@@ -20,33 +20,34 @@
 {% block content %}	      			  
 
 
-	<h4 class="page-header">{% trans 'Client Setup' %}
-	</h4>
-	{% if messages %}
-        {% for message in messages %}
-            <div class="alert {% if message.tags %}alert-{{ message.tags }}"{% endif %}>{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-	
-    <h5>
-    	<form method="POST" action="{% url 'client_setup' object.pk %}">
-    <input type="submit" name="submit" value="Save changes" class="btn btn-primary" id="submit-form">
-	<input type="submit" name="pend" value="Save for later" class="btn btn-primary" id="pend-form">	
-    </h5>
-    <div class="container-fluid">
-		<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
-  <div class="panel panel-default">
-  	<div class="bg-primary">
+<h4 class="page-header">{% trans 'Client Setup' %}
+</h4>
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}"{% endif %}>{{ message }}</div>
+    {% endfor %}
+{% endif %}
+<form method="POST" action="{% url 'client_setup' object.pk %}">
+    
+<h5>
+	<input type="submit" name="submit" value="Save changes" class="btn btn-primary" id="submit-form">
+    <input type="submit" name="pend" value="Save for later" class="btn btn-primary" id="pend-form">	
+</h5>
+<div class="container-fluid">
+    <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+      <!-- begin of section Identification  -->
+      <div class="panel panel-default">
+    <div class="bg-primary">
     <div class="panel-heading" role="tab" id="heading1">
       <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion" href="#collapse1" aria-expanded="true" aria-controls="collapse1">
-          #1 - Identification
-          {% if invalid_forms %}
-            {% if id_form.errors %}<i class="fa fa-exclamation-triangle"></i>
-            {% else %}<i class="fa fa-check"></i>
-            {%endif%}
-          {%endif%}
-        </a>
+    <a data-toggle="collapse" data-parent="#accordion" href="#collapse1" aria-expanded="true" aria-controls="collapse1">
+      #1 - Identification
+      {% if invalid_forms %}
+        {% if id_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+        {% else %}<i class="fa fa-check"></i>
+        {%endif%}
+      {%endif%}
+    </a>
       </h4>
     </div>
     </div>
@@ -55,181 +56,205 @@
         {% crispy id_form %}
       </div>
     </div>
-  </div>
-  <div class="panel panel-default">
-  	<div class="bg-primary">
+      </div>
+      <!--end of section Identification -->
+      <!-- begin of section Contact -->
+      <div class="panel panel-default">
+    <div class="bg-primary">
     <div class="panel-heading" role="tab" id="heading2">
       <h4 class="panel-title">
-        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse2" aria-expanded="false" aria-controls="collapse2">
-          #2 - {{ contact_form.helper.form_title }}
-          {% if invalid_forms %}
-            {% if contact_form.errors or address_form.errors or phones_form.errors.count %}<i class="fa fa-exclamation-triangle"></i>
-            {% else %}<i class="fa fa-check"></i>
-            {%endif%}
-          {%endif%}
-        </a>
+    <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse2" aria-expanded="false" aria-controls="collapse2">
+      #2 - {{ contact_form.helper.form_title }}
+      {% if invalid_forms %}
+        {% if contact_form.errors or address_form.errors or phones_form.errors.count %}<i class="fa fa-exclamation-triangle"></i>
+        {% else %}<i class="fa fa-check"></i>
+        {%endif%}
+      {%endif%}
+    </a>
       </h4>
       </div>
     </div>
     <div id="collapse2" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading2">
       <div class="panel-body">
- 		<h5><span class="text-primary">Address</span></h5>
- 		<div class="well">
- 		{% crispy address_form %}
- 		</div>
- 		<h5><span class="text-primary">Phones</span></h5>
- 		<div class="well">
- 		{{ phones_form.management_form }}
- 		{% for form in phones_form %}
- 			{% crispy form %}
- 		{% endfor %}
- 		</div>
- 		<div class="well">
-        {% crispy contact_form %}
-        </div>
+    <h5><span class="text-primary">Address</span></h5>
+    <div class="well">
+    {% crispy address_form %}
+    </div>
+    <h5><span class="text-primary">Phones</span></h5>
+    <div class="well">
+    {{ phones_form.management_form }}
+    {% for form in phones_form %}
+    	{% crispy form %}
+    {% endfor %}
+    </div>
+    <div class="well">
+    {% crispy contact_form %}
+    </div>
       </div>
     </div>
-  </div>
-  <div class="panel panel-default">
-  	<div class="bg-primary">
+      </div>
+      <!--end of section Contact -->
+      <!-- begin of section Communication -->
+      <div class="panel panel-default">
+    <div class="bg-primary">
     <div class="panel-heading" role="tab" id="heading3">
       <h4 class="panel-title">
-        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse3" aria-expanded="false" aria-controls="collapse2">
-          #3 - {{ comm_form.helper.form_title }}
-          {% if invalid_forms %}
-            {% if comm_form.errors %}<i class="fa fa-exclamation-triangle"></i>
-            {% else %}<i class="fa fa-check"></i>
-            {%endif%}
-          {%endif%}
-        </a>
+    <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse3" aria-expanded="false" aria-controls="collapse2">
+      #3 - {{ comm_form.helper.form_title }}
+      {% if invalid_forms %}
+        {% if comm_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+        {% else %}<i class="fa fa-check"></i>
+        {%endif%}
+      {%endif%}
+    </a>
       </h4>
     </div>
-   </div>
+       </div>
     <div id="collapse3" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading3">
       <div class="panel-body">
- 		{% crispy comm_form %}
+    	{% crispy comm_form %}
       </div>
     </div>
-  </div>
-  <div class="panel panel-default">
-  	<div class="bg-primary">
-    <div class="panel-heading" role="tab" id="heading4">
-      <h4 class="panel-title">
-        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse4" aria-expanded="false" aria-controls="collapse4">
-          #4 - {{ ref_form.helper.form_title }}
-          {% if invalid_forms %}
-            {% if ref_form.errors %}<i class="fa fa-exclamation-triangle"></i>
-            {% else %}<i class="fa fa-check"></i>
-            {%endif%}
-          {%endif%}
-        </a>
-      </h4>
-     </div>
-    </div>
-    <div id="collapse4" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading4">
-      <div class="panel-body">
-      	{% crispy ref_form %}
       </div>
-    </div>
-  </div>
-  <div class="panel panel-default">
-    <div class="bg-primary">
-    <div class="panel-heading" role="tab" id="heading-rel">
-      <h4 class="panel-title">
-        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse-rel" aria-expanded="false" aria-controls="collapse-rel">
-          #5 - {% trans 'Contacts' %}
-          {% if invalid_forms %}
-            {% if rel_form.errors.count %}<i class="fa fa-exclamation-triangle"></i>
-            {% else %}<i class="fa fa-check"></i>
-            {%endif%}
-          {%endif%}
-        </a>
-      </h4>
-     </div>
-    </div>
-    <div id="collapse-rel" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-rel">
-      <div class="panel-body">
-          
-        {{ rel_form.management_form }}
-        {% for form in rel_form %}
-            <div class="well">
-            {% crispy form %}
+      <!--end of section Communication -->
+      <!-- begin of section Referral -->
+      <div class="panel panel-default">
+        <div class="bg-primary">
+            <div class="panel-heading" role="tab" id="heading4">
+                <h4 class="panel-title"><a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse4" aria-expanded="false" aria-controls="collapse4"> #4 - {{ ref_form.helper.form_title }}
+                {% if invalid_forms %}
+                {% if ref_form.errors %}<i class="fa fa-exclamation-triangle"></i> {% else %}<i class="fa fa-check"></i> {%endif%}
+                {%endif%} </a></h4>
             </div>
-        {% endfor %}
-        
-      </div>
+        </div>
+        <div id="collapse4" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading4">
+            <div class="panel-body">
+                {% crispy ref_form %}
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="panel panel-default">
-    <div class="bg-primary">
-    <div class="panel-heading" role="tab" id="heading-meal">
-      <h4 class="panel-title">
-        <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse-meal" aria-expanded="false" aria-controls="collapse-meal">
-          #6 - {{ order_form.helper.form_title }}
-          {% if invalid_forms %}
-            {% if order_form.errors %}<i class="fa fa-exclamation-triangle"></i>
-            {% else %}<i class="fa fa-check"></i>
-            {%endif%}
-          {%endif%}
-        </a>
-      </h4>
-     </div>
-    </div>
-    <div id="collapse-meal" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-meal">
-      <div class="panel-body">
-        {% crispy order_form %}
-        
-        <table class="table table-user-information">
-        <tbody>
-            {% for day in meal_service_days.all %}
-            <tr id="tr_id_order-days_{{ day.pk }}" 
-                class="{%if day.active%}tr-active-day{%else%}tr-everyday{%endif%}"
-                style="display: none">
-                <td class="col-xs-1">
-                    {{ day.name_en }}
-                </td>
-                <td class="col-xs-11">
-                    <div class="container">
-                        <div class="row">
-                            
-                        {% with day.sort_order as day_pos %}
-                        <div class="col-xs-6">
-                            {% trans 'Select meal defaults' %}
-                            {% with meals_form|get_dict_item:day_pos as day_meals_form %}
-                                {{ day_meals_form.management_form }}
-                                {% for form in day_meals_form %}
-                                    
-                                    {% crispy form %}
-                                    
-                                {% endfor %}
-                                
-                            {% endwith %}
-                        </div>
-                        <div class="col-xs-6">
-                            {% trans 'Select meal sides' %}
-                            {% with mealsides_form|get_dict_item:day_pos as day_sides_form %}
-                                {{ day_sides_form.management_form }}
-                                {% for form in day_sides_form %}
-                                    
-                                    {% crispy form %}
-                                    
-                                {% endfor %}
-                                
-                            {% endwith %}
-                        </div>
-                        {% endwith %}
-                        </div>
-                    </div>
-                </td>
+      <!--end of section Referral -->
+      <!-- begin of section Relationships -->
+      <div class="panel panel-default">
+        <div class="bg-primary">
+        <div class="panel-heading" role="tab" id="heading-rel">
+          <h4 class="panel-title">
+            <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse-rel" aria-expanded="false" aria-controls="collapse-rel">
+              #5 - {% trans 'Contacts' %}
+              {% if invalid_forms %}
+                {% if rel_form.errors.count %}<i class="fa fa-exclamation-triangle"></i>
+                {% else %}<i class="fa fa-check"></i>
+                {%endif%}
+              {%endif%}
+            </a>
+          </h4>
+         </div>
+        </div>
+        <div id="collapse-rel" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-rel">
+          <div class="panel-body">
+              
+            {{ rel_form.management_form }}
+            {% for form in rel_form %}
+                <div class="well">
+                {% crispy form %}
+                </div>
             {% endfor %}
-        </table>
-        
+            
+          </div>
+        </div>
       </div>
+      <!--end of section Relationships -->
+      <!-- begin of section Meal service -->
+      <div class="panel panel-default">
+        <div class="bg-primary">
+        <div class="panel-heading" role="tab" id="heading-meal">
+          <h4 class="panel-title">
+            <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse-meal" aria-expanded="false" aria-controls="collapse-meal">
+              #6 - {{ order_form.helper.form_title }}
+              {% if invalid_forms %}
+                {% if order_form.errors %}<i class="fa fa-exclamation-triangle"></i>
+                {% else %}<i class="fa fa-check"></i>
+                {%endif%}
+              {%endif%}
+            </a>
+          </h4>
+         </div>
+        </div>
+        <div id="collapse-meal" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-meal">
+          <div class="panel-body">
+            {% crispy order_form %}
+            
+            <table class="table table-user-information">
+            <tbody>
+                {% for day in meal_service_days.all %}
+                <tr id="tr_id_order-days_{{ day.pk }}" 
+                    class="{%if day.active%}tr-active-day{%else%}tr-everyday{%endif%}"
+                    style="display: none">
+                    <td class="col-xs-1">
+                        {{ day.name_en }}
+                    </td>
+                    <td class="col-xs-11">
+                        <div class="container">
+                            <div class="row">
+                                
+                            {% with day.sort_order as day_pos %}
+                            <div class="col-xs-6">
+                                {% trans 'Select meal defaults' %}
+                                {% with meals_form|get_dict_item:day_pos as day_meals_form %}
+                                    {{ day_meals_form.management_form }}
+                                    {% for form in day_meals_form %}
+                                        
+                                        {% crispy form %}
+                                        
+                                    {% endfor %}
+                                    
+                                {% endwith %}
+                            </div>
+                            <div class="col-xs-6">
+                                {% trans 'Select meal sides' %}
+                                {% with mealsides_form|get_dict_item:day_pos as day_sides_form %}
+                                    {{ day_sides_form.management_form }}
+                                    {% for form in day_sides_form %}
+                                        
+                                        {% crispy form %}
+                                        
+                                    {% endfor %}
+                                    
+                                {% endwith %}
+                            </div>
+                            {% endwith %}
+                            </div>
+                        </div>
+                    </td>
+                {% endfor %}
+            </table>
+            
+          </div>
+        </div>
+      </div>
+      <!-- end of section Meal service-->
+      <!-- begin of section Dietary restrictions -->
+      <div class="panel panel-default">
+        <div class="bg-primary">
+            <div class="panel-heading" role="tab" id="headingdiet">
+                <h4 class="panel-title"><a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapsediet" aria-expanded="false" aria-controls="collapsediet"> #7 - {{ diet_form.helper.form_title }}
+                {% if invalid_forms %}
+                {% if diet_form.errors %}<i class="fa fa-exclamation-triangle"></i> {% else %}<i class="fa fa-check"></i> {%endif%}
+                {%endif%} </a></h4>
+            </div>
+        </div>
+        <div id="collapsediet" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingdiet7">
+            <div class="panel-body">
+                {% crispy diet_form %}
+                
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+      <!-- end of section Dietary restrictions -->
+    </div><!-- end of panel-group -->
 		
-	</div>
+</div><!-- end of container-fluid -->
+        
 </form>
 	
 	  
@@ -246,6 +271,18 @@
 <script>
 	/* Project specific Javascript goes here. */
 $(document).ready(function() {
+    var active_collapse = "collapse1";
+    $('#collapse1').collapse('show');
+//$('.collapse').on('hidden.bs.collapse', function () {
+  //alert('hidden '+$(this).attr("id"));
+//})
+
+$('.collapse').on('show.bs.collapse', function () {
+  // do something…
+  id_new_collapse = $(this).attr("id");
+  alert('show '+id_new_collapse+'-> hide '+active_collapse);
+  active_collapse = id_new_collapse;
+})
 
    $("#id_ref-ref_date").dateEntry({
    		dateFormat: 'dny ',

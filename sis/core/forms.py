@@ -32,6 +32,51 @@ class CoreInlineFormHelper(FormHelper):
         self.form_class = 'form-inline'
         self.field_template = 'bootstrap3/layout/inline_field.html'
 
+class SetupFormHelper(FormHelper):
+    def __init__(self, *args, **kwargs):
+        self.form_id = kwargs.pop('form_id')
+        self.form_title = kwargs.pop('form_title')
+        show_form_title = kwargs.pop('show_form_title')
+        
+        super(SetupFormHelper, self).__init__(*args, **kwargs)
+        self.form_method = 'post'
+        self.form_tag = False
+        self.disable_csrf = True
+        
+        
+class ProfileEditFormHelper(FormHelper):
+    def __init__(self, *args, **kwargs):
+        if 'label_class' in kwargs:      
+            label_class = kwargs.pop('label_class')
+        else:
+            label_class = 'col-lg-3'
+        if 'field_class' in kwargs:      
+            field_class = kwargs.pop('field_class')
+        else:
+            field_class = 'col-lg-9'
+        
+        self.tab = kwargs.pop('tab')
+        self.cancel_url = kwargs.pop('cancel_url')
+        
+        super(CoreEditFormHelper, self).__init__(*args, **kwargs)
+        
+        
+        self.label_class = label_class
+        self.field_class = field_class
+        self.form_tag = True
+        self.form_method = 'post'
+        self.form_action = reverse_lazy('client_profile_'+self.tab+'_edit', kwargs={'pk':str(self.form.instance.client.id)})
+        self.form_class = 'form-horizontal'
+        
+    def add_form_actions(self):
+        self.layout.append(
+                 FormActions(
+                             Submit('save', 'Save changes'),
+                             HTML('<a class="btn btn-default" href="'+self.cancel_url+'">'+_("Cancel")+"</a>"),
+                             css_class="form-actions pull-right"
+                             )
+                )
+        
 class CoreModelForm(autocomplete_light.ModelForm):
     """
         edit attribute indicates whether the form is used for update (edit=True) or creation (edit=False)
