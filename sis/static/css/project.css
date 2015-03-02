@@ -833,3 +833,12 @@ div.vertical-tab div.vertical-tab-content:not(.active){
     background-color: #740153;
     
 }
+
+.restriction-formset {
+    margin-right:20px;
+}
+
+.well_formset {
+    margin-left:5px;
+    margin-right:5px;
+}

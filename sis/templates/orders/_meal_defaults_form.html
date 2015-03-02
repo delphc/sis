@@ -1,0 +1,69 @@
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+{% load core_filters %}
+
+            {% crispy order_form %}
+           
+            <div class="row">
+            <table  class="table table-user-information">
+            <tbody>
+                {% for day in meal_service_days.all %}
+                <tr id="tr_id_order-days_{{ day.pk }}" 
+                    class="{%if day.active%}tr-active-day{%else%}tr-everyday{%endif%}{%if order and day in order.days.all %} selected-day{%endif%}"
+                    style="display: none">
+                    <td class="col-xs-1">
+                        {{ day.name_en }}
+                    </td>
+                    <td class="col-xs-11">
+                        <div class="row">
+                                
+                            {% with day.sort_order as day_pos %}
+                            <div class="col-xs-5 well well_formset">
+                                {% trans 'Select meal defaults' %}
+                                {% with meals_form|get_dict_item:day_pos as day_meals_form %}
+                                    {{ day_meals_form.management_form }}
+                                    {% for form in day_meals_form %}
+                                        {% if form.instance.pk %}{{form.id}}{% endif %}
+                                        {% crispy form %}
+                                        
+                                    {% endfor %}
+                                    
+                                {% endwith %}
+                            </div>
+                            <div class="col-xs-5 well well_formset">
+                                {% trans 'Select meal sides' %}
+                                {% with mealsides_form|get_dict_item:day_pos as day_sides_form %}
+                                    {{ day_sides_form.management_form }}
+                                    {% if day_sides_form.management_form.INITIAL_FORMS.value == 0 %}
+                                        {% with day_sides_form.empty_form as form %}
+                                        <div id="id_{{day_pos}}_empty_form" style="display:none;">
+                                            {% crispy form %}
+                                         </div>
+                                        {% endwith %}
+                                        <div class="container-{{day_pos}}-form">
+                                            
+                                        {% comment %}
+                                        will be populated by dynamic formset plugin,
+                                        based on template provided in div id_[day_pos]_empty_form 
+                                        {% endcomment %}
+                                            <div>
+                                            </div>
+                                        </div>
+                                    {%else%}
+                                    
+                                        {% for form in day_sides_form %}
+                                            {% if form.instance.pk %}{{form.id}}{% endif %}
+                                            {% crispy form %}
+                                        {% endfor %}
+                                    {%endif%}
+                                {% endwith %}
+                            </div>
+                            {% endwith %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+             </tbody>
+            </table>
+             </div> <!-- end of mealdefaults div -->

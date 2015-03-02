@@ -11,7 +11,9 @@ from django.db.models.fields import BLANK_CHOICE_DASH
 from django.core.urlresolvers import reverse_lazy
 from django.forms import models
 from django.forms.formsets import BaseFormSet
+
 from django.forms.models import inlineformset_factory, BaseInlineFormSet
+from django.template.loader import render_to_string
 from django.utils.datastructures import SortedDict, MultiValueDict
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
@@ -19,6 +21,8 @@ from django.utils.translation import ugettext as _
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field, Fieldset, ButtonHolder, Div, HTML, Hidden
 from crispy_forms.layout import LayoutObject, BaseInput, TEMPLATE_PACK
+from crispy_forms.bootstrap import InlineCheckboxes
+
 
 from models import PendedForm
 
@@ -58,14 +62,13 @@ class ProfileEditFormHelper(FormHelper):
         self.tab = kwargs.pop('tab')
         self.cancel_url = kwargs.pop('cancel_url')
         
-        super(CoreEditFormHelper, self).__init__(*args, **kwargs)
+        super(ProfileEditFormHelper, self).__init__(*args, **kwargs)
         
         
         self.label_class = label_class
         self.field_class = field_class
         self.form_tag = True
         self.form_method = 'post'
-        self.form_action = reverse_lazy('client_profile_'+self.tab+'_edit', kwargs={'pk':str(self.form.instance.client.id)})
         self.form_class = 'form-horizontal'
         
     def add_form_actions(self):
@@ -237,6 +240,17 @@ class Cancel(BaseInput):
     input_type = 'cancel'
     field_classes = 'cancel cancelButton' if TEMPLATE_PACK == 'uni_form' else 'btn btn-default'
 
+class InlineSelectButtons(InlineCheckboxes):
+    """
+    Layout object for rendering checkboxes inline::
+
+        DaysInlineButtons('field_name')
+    """
+    template = "orders/days_selectmultiple_inline.html"
+
+    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+        context.update({'inline_class': 'inline'})
+        return super(InlineCheckboxes, self).render(form, form_style, context)
 
 class Formset(LayoutObject):
     """
@@ -249,8 +263,9 @@ class Formset(LayoutObject):
 
     template = "core/formset.html" 
 
-    def __init__(self, div_id, formset_name_in_context, template=None):
+    def __init__(self, div_id, formset_title, formset_name_in_context, template=None):
         self.div_id = div_id
+        self.formset_title = formset_title
         self.formset_name_in_context = formset_name_in_context
                     
         # crispy_forms/layout.py:302 requires us to have a fields property

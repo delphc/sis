@@ -1,26 +1,35 @@
 [
 {
-	"model": "orders.mealside",
+	"model": "food.foodpreparationmode",
 	"pk": 1,
     "fields": {
-        "name_en": "Green salad",
-        "name_fr": "Salade verte"
+    	"slug": "cutup",
+        "name_en": "Cut Up",
+        "name_fr": "Petits morceaux",
+        "description_en": "Food must be cut up in small chunks",
+        "description_fr": "La nourriture doit être découpée en petits morceaux"
     }
 },
 {
-	"model": "orders.mealside",
+	"model": "food.foodpreparationmode",
 	"pk": 2,
     "fields": {
-        "name_en": "Fruit salad",
-        "name_fr": "Salade de fruits"
+    	"slug": "puree",
+        "name_en": "Puree",
+        "name_fr": "Purée",
+        "description_en": "Food must be mixed into a puree",
+        "description_fr": "La nourriture doit être réduite en purée"
     }
 },
 {
-	"model": "orders.mealside",
+	"model": "food.foodpreparationmode",
 	"pk": 3,
     "fields": {
-        "name_en": "Dessert",
-        "name_fr": "Dessert"
+    	"slug": "pureeside",
+        "name_en": "Puree Side Dish",
+        "name_fr": "Accompagnement Purée",
+        "description_en": "Side dish must be cut up in small chunks",
+        "description_fr": "L'accompagnement doit être réduit en purée"
     }
 }
 

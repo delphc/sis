@@ -1,16 +1,5 @@
 [
-{
-	"model": "food.foodcategory",
-	"pk": 1,
-    "fields": {
-    	"slug": "allergies",
-        "name_en": "Allergies",
-        "name_fr": "Allergies",
-        "description_en": "Client's allergies ingredients",
-        "description_en": "Ingrédients auxquels le client est allergique",
-        "sort_order" : "10"
-    }
-},
+
 {
 	"model": "food.foodcategory",
 	"pk": 2,

@@ -1,8 +1,19 @@
 {% load crispy_forms_tags %}
 
-<div id={{ wrapper.div_id|safe }} class="formset">
+<div id={{ wrapper.div_id|safe }} class="restriction-formset col-xs-5">
 	
-    {% crispy  formset %}
-    <!--<input type="button" name="add" value="Add another" />-->
-   
+	{% with formset.empty_form as form %}
+    <div id="id_empty_form" style="display:none;">
+        {% crispy form %}
+    </div>
+    {% endwith %}
+    
+    {{ formset.management_form }}
+    <label class="control-label">{{ wrapper.formset_title|safe }}</label>
+    <div class="controls">
+        <div class="container-fluid container-restriction-form">
+            <div></div>
+        </div>
+    </div>
+    
 </div>

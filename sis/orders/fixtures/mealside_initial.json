@@ -22,6 +22,22 @@
         "name_en": "Dessert",
         "name_fr": "Dessert"
     }
+},
+{
+	"model": "orders.mealside",
+	"pk": 4,
+    "fields": {
+        "name_en": "Pudding",
+        "name_fr": "Pouding"
+    }
+},
+{
+	"model": "orders.mealside",
+	"pk": 5,
+    "fields": {
+        "name_en": "Diabetic dessert",
+        "name_fr": "Dessert diabétique"
+    }
 }
 
 ]

@@ -9,6 +9,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.generic import GenericRelation
 from django.core.urlresolvers import reverse_lazy
+from django.core.validators import MinValueValidator
 from django_extensions.db.models import TimeStampedModel
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import pgettext_lazy
@@ -52,6 +53,9 @@ class ServiceDayManager(models.Manager):
     def get_meal_service_everyday(self):
         return super(ServiceDayManager, self).filter(service_type=ServiceDay.MEAL).get(slug=ServiceDay.SLUG_EVERYDAY)
     
+    def get_meal_service_day(self, sort_order):
+        return super(ServiceDayManager, self).filter(service_type=ServiceDay.MEAL).get(sort_order=sort_order)
+    
 class ServiceDay(TranslatedModel):
     SLUG_EVERYDAY="everyday_meal" # DO NOT CHANGE
     MEAL='M'
@@ -82,7 +86,9 @@ class OrderManager(models.Manager):
         if latest_entry:
             return latest_entry[0].order
         else:
-            return None
+            qs = Order.objects.filter(client=client).order_by("-created")
+            return list(qs[:1])[0]
+            
         
 class Order(TimeStampedModel):
     objects = OrderManager()
@@ -149,7 +155,6 @@ class Order(TimeStampedModel):
     def _get_meal_defaults_type(self):
         # default is meal_defaults_type
         if not hasattr(self, 'meal_defaults_type'):
-            print >>sys.stderr, '***  INIT meal_defaults_type ***'
             mealdefaults = self.get_meal_defaults()
             if mealdefaults.count() == 1:
                 mealdefault = mealdefaults[0]
@@ -159,8 +164,6 @@ class Order(TimeStampedModel):
                     self.meal_defaults_type = self.DEFAULTS_TYPE_DAY 
             else:
                 self.meal_defaults_type = self.DEFAULTS_TYPE_DAY
-        else:
-            print >>sys.stderr, '***  ALREADY SET meal_defaults_type ***'
                     
         return self.meal_defaults_type
     
@@ -169,10 +172,28 @@ class Order(TimeStampedModel):
     
     def get_meal_defaults_type_code(self):
         return self._get_meal_defaults_type()['code']
-            
+    
+    def has_same_defaults_everyday(self):
+        return (self.get_meal_defaults_type_code () == self.DEFAULTS_TYPE_EVERYDAY)
+             
     def get_meal_defaults(self):
         return self.mealdefault_set.order_by('day__sort_order').all()
     
+    def get_meal_default(self, day):
+        qs = self.mealdefault_set.filter(day=day)
+        meal_default = list(qs[:1])
+        if meal_default:
+            return meal_default[0]
+        else:
+            return None
+        
+#             meal_defaults_type = order.get_meal_defaults_type_code()
+#             if order.has_same_defaults_everyday():
+#                 service_day = ServiceDay.objects.get_meal_service_everyday()
+#             else:
+#                 # prefix = meals_[day.sort_order] or mealsides_[day.sort_order]
+#                 
+#             meal_default = meal_defaults.get(day=service_day)
     
     
 #     
@@ -259,10 +280,10 @@ class MealDefaultMeal(TimeStampedModel):
     )
     size = models.CharField(max_length=1, choices=MEAL_SIZES, default=REG)
     
-    quantity = models.PositiveIntegerField(default=0)
+    quantity = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1)])
     
 class MealDefaultSide(TimeStampedModel):
     meal = models.ForeignKey(MealDefault)
     side = models.ForeignKey(MealSide)
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1)])
     

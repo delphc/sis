@@ -3,25 +3,34 @@
 
 	$('#id_{{ order_form.prefix }}-type').change(function(){
           var data=$(this).val();
-          if (data === 'O') { // for 'next of kin' category
+          if (data === 'O') { // for 'ongoing' type
             $('#div_id_{{ order_form.prefix }}-days').show();
+            $('.tr-active-day').hide();
+            $('.selected-day').show();
             
-            
-          } else { // W for 'case worker' category
+          } else { // E for 'episodic' type
             $('#div_id_{{ order_form.prefix }}-days').hide();
-            
+            // if meal defaults type is day-specific, show all days
+            var data_meal_defaults_type = $('input[name="{{ order_form.prefix }}-meal_defaults_type"]:checked').val();
+            if (data_meal_defaults_type === 'D')
+                $('.tr-active-day').show();
           }
                   
         });
+    {% if order %}$('#id_{{ order_form.prefix }}-type').val('{{order.type}}').trigger('change');{%endif%}
     
     $('input[name="{{ order_form.prefix }}-meal_defaults_type"]:radio').change(function(){
           var data = $('input[name="{{ order_form.prefix }}-meal_defaults_type"]:checked').val();
           if (data === 'D') { // for day-specific meal defaults
-            $('.selected-day').show();
+            var data_order_type = $('#id_{{ order_form.prefix }}-type').val();
+            if (data_order_type === 'O')
+                $('.selected-day').show(); 
+            else 
+                $('.tr-active-day').show();
             $('.tr-everyday').hide();
             
-          } else { // W for 'case worker' category
-            $('.selected-day').hide();
+          } else { // A for same defaults for everyday
+            $('.tr-active-day').hide();
             $('.tr-everyday').show();
             
           }
@@ -71,14 +80,31 @@
     {% for day in meal_service_days.all %}
         $(".meal_row_meals_{{day.sort_order}}").formset({
             prefix: 'meals_{{day.sort_order}}',
+            formCssClass: 'dynamic_meals_{{day.sort_order}}',
             addText: '<i class="fa fa-plus-circle"></i> {% trans "Add meal" %}',
-            deleteText: '<i class="fa fa-remove"> {% trans "Remove meal" %}'
+            deleteText: '<i class="fa fa-remove"></i> {% trans "Remove meal" %}'
         });
-        $(".side_row_mealsides_{{day.sort_order}}").formset({
-            prefix: 'mealsides_{{day.sort_order}}',
-            addText: '<i class="fa fa-plus-circle"></i> {% trans "Add side" %}',
-            deleteText: '<i class="fa fa-remove"> {% trans "Remove side" %}'
-        });
+        var initial_forms = $("#id_mealsides_{{day.sort_order}}-INITIAL_FORMS").val()
+        if (initial_forms === "0") {
+            
+            $("div.container-{{day.sort_order}}-form div").formset({
+                prefix: 'mealsides_{{day.sort_order}}',
+                formTemplate: '#id_{{day.sort_order}}_empty_form',
+                formCssClass: 'dynamic_sides_{{day.sort_order}}',
+                addText: '<i class="fa fa-plus-circle"></i> {% trans "Add side" %}',
+                deleteText: '<i class="fa fa-remove"></i> {% trans "Remove side" %}'
+            });    
+        } else {
+            
+            $(".side_row_mealsides_{{day.sort_order}}").formset({
+                prefix: 'mealsides_{{day.sort_order}}',
+                //formTemplate: '#id_{{day.sort_order}}_empty_form',
+                formCssClass: 'dynamic_sides_{{day.sort_order}}',
+                addText: '<i class="fa fa-plus-circle"></i> {% trans "Add side" %}',
+                deleteText: '<i class="fa fa-remove"> {% trans "Remove side" %}'
+                    
+            });
+        }
     {% endfor %}
     
     

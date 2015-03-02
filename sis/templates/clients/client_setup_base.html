@@ -182,52 +182,7 @@
         </div>
         <div id="collapse-meal" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading-meal">
           <div class="panel-body">
-            {% crispy order_form %}
-            
-            <table class="table table-user-information">
-            <tbody>
-                {% for day in meal_service_days.all %}
-                <tr id="tr_id_order-days_{{ day.pk }}" 
-                    class="{%if day.active%}tr-active-day{%else%}tr-everyday{%endif%}"
-                    style="display: none">
-                    <td class="col-xs-1">
-                        {{ day.name_en }}
-                    </td>
-                    <td class="col-xs-11">
-                        <div class="container">
-                            <div class="row">
-                                
-                            {% with day.sort_order as day_pos %}
-                            <div class="col-xs-6">
-                                {% trans 'Select meal defaults' %}
-                                {% with meals_form|get_dict_item:day_pos as day_meals_form %}
-                                    {{ day_meals_form.management_form }}
-                                    {% for form in day_meals_form %}
-                                        
-                                        {% crispy form %}
-                                        
-                                    {% endfor %}
-                                    
-                                {% endwith %}
-                            </div>
-                            <div class="col-xs-6">
-                                {% trans 'Select meal sides' %}
-                                {% with mealsides_form|get_dict_item:day_pos as day_sides_form %}
-                                    {{ day_sides_form.management_form }}
-                                    {% for form in day_sides_form %}
-                                        
-                                        {% crispy form %}
-                                        
-                                    {% endfor %}
-                                    
-                                {% endwith %}
-                            </div>
-                            {% endwith %}
-                            </div>
-                        </div>
-                    </td>
-                {% endfor %}
-            </table>
+                {% include 'orders/_meal_defaults_form.html' %}
             
           </div>
         </div>
@@ -246,7 +201,29 @@
         <div id="collapsediet" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingdiet7">
             <div class="panel-body">
                 {% crispy diet_form %}
-                
+                {% for category in foodcategories.all %}
+                <div id="div_{{category.slug}}" class="restriction-formset col-xs-5 well">
+                    {% with restrictions_form|get_dict_item:category.slug as category_restrictions_form %}
+                        {{ category_restrictions_form.management_form }}
+                        {% with category_restrictions_form.empty_form as form %}
+                            <div id="id_{{category.slug}}_empty_form" style="display:none;">
+            
+                                {% crispy form %}
+                            </div>
+                        {% endwith %}
+                        <label class="control-label">{{ category.get_name|safe }}</label>
+                        <div class="controls">
+                            <div class="container-fluid container-{{category.slug}}-form">
+                                {% comment %}
+                                will be populated by dynamic formset plugin,
+                                based on template provided in div id_[category.slug]_empty_form 
+                                {% endcomment %}
+                                <div></div>
+                            </div>
+                        </div>           
+                    {% endwith %}
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -271,22 +248,20 @@
 <script>
 	/* Project specific Javascript goes here. */
 $(document).ready(function() {
-    var active_collapse = "collapse1";
-    $('#collapse1').collapse('show');
-//$('.collapse').on('hidden.bs.collapse', function () {
-  //alert('hidden '+$(this).attr("id"));
-//})
+//    var active_collapse = "collapse1";
+//    $('#collapse1').collapse('show');
 
-$('.collapse').on('show.bs.collapse', function () {
-  // do something…
-  id_new_collapse = $(this).attr("id");
-  alert('show '+id_new_collapse+'-> hide '+active_collapse);
-  active_collapse = id_new_collapse;
-})
 
-   $("#id_ref-ref_date").dateEntry({
-   		dateFormat: 'dny ',
-   		initialField: 0});
+//    $('.collapse').on('show.bs.collapse', function () {
+      // do something…
+//      id_new_collapse = $(this).attr("id");
+//      alert('show '+id_new_collapse+'-> hide '+active_collapse);
+//      active_collapse = id_new_collapse;
+//    })
+
+//   $("#id_ref-ref_date").dateEntry({
+//   		dateFormat: 'dny ',
+//   		initialField: 0});
    
 //   $(".phone_row").formset({
 //           // prefix: '{{ phone_form.prefix }}'
@@ -304,6 +279,7 @@ $('.collapse').on('show.bs.collapse', function () {
     {% include 'core/_divmodal_js.html' with button_id='#new-contact-button' load_url=contact_create_url form_id='#contact-create-form' select_id='#' %}
     
     {% include 'orders/_meal_defaults_js.html' %}
+    {% include 'food/_restrictions_defaults_js.html' %}
     
 });
 

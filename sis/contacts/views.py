@@ -624,7 +624,6 @@ class ContactUpdateViewOld(LoginRequiredMixin, ContactActionMixin, UpdateView):
         contact_info = contact_form.save(commit=False)
         contact_info.save()
         
-        #if phone_form.has_changed():
         print >>sys.stderr, '*** save phone_form ***' 
         phone_instances = phone_form.save(commit=False)
         for phone in phone_instances:

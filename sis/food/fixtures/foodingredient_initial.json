@@ -1,0 +1,62 @@
+[
+{
+	"model": "food.foodingredient",
+	"pk": 1,
+    "fields": {
+    	"slug": "pork",
+        "name_en": "Pork",
+        "name_fr": "Porc",
+        "category": 4
+        }
+},
+{
+	"model": "food.foodingredient",
+	"pk": 2,
+    "fields": {
+    	"slug": "beef",
+        "name_en": "Beef",
+        "name_fr": "Boeuf",
+        "category": 4
+        }
+},
+{
+	"model": "food.foodingredient",
+	"pk": 3,
+    "fields": {
+    	"slug": "Lamb",
+        "name_en": "Lamb",
+        "name_fr": "Agneau",
+        "category": 4
+        }
+},
+{
+	"model": "food.foodingredient",
+	"pk": 4,
+    "fields": {
+    	"slug": "poultry",
+        "name_en": "Poultry",
+        "name_fr": "Volaille",
+        "category": 4
+        }
+},
+{
+	"model": "food.foodingredient",
+	"pk": 5,
+    "fields": {
+    	"slug": "butter",
+        "name_en": "Butter",
+        "name_fr": "Beurre",
+        "category": 5
+        }
+},
+{
+	"model": "food.foodingredient",
+	"pk": 6,
+    "fields": {
+    	"slug": "milk",
+        "name_en": "Milk",
+        "name_fr": "Lait",
+        "category": 5
+        }
+}
+]

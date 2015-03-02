@@ -10,26 +10,15 @@ from django.utils.translation import ugettext as _
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field, Fieldset, ButtonHolder, Div, HTML, Hidden
 from crispy_forms.bootstrap import (
-    FormActions, TabHolder, Tab, InlineCheckboxes, InlineRadios, InlineField, UneditableField)
+    FormActions, TabHolder, Tab, InlineRadios, InlineField, UneditableField)
 
 from crispy_forms.layout import Layout, TEMPLATE_PACK
 from crispy_forms.utils import flatatt
 
 from models import Order, MealDefault, MealDefaultMeal, MealDefaultSide, ServiceDay
-from core.forms import CoreInlineFormHelper, CoreModelForm, CoreBaseInlineFormSet, SetupFormHelper, ProfileEditFormHelper
+from core.forms import InlineSelectButtons, CoreInlineFormHelper, CoreModelForm, CoreBaseInlineFormSet, SetupFormHelper, ProfileEditFormHelper
    
     
-class DaysInlineButtons(InlineCheckboxes):
-    """
-    Layout object for rendering checkboxes inline::
-
-        DaysInlineButtons('field_name')
-    """
-    template = "orders/days_selectmultiple_inline.html"
-
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
-        context.update({'inline_class': 'inline'})
-        return super(InlineCheckboxes, self).render(form, form_style, context)
 
             
 class OrderSetupFormHelper(SetupFormHelper):   
@@ -44,7 +33,7 @@ class OrderSetupFormHelper(SetupFormHelper):
                 css_class="row"
                 ),                                    
             Div(
-                DaysInlineButtons('days',css_class="col-xs-12"),
+                InlineSelectButtons('days',css_class="col-xs-12"),
                 css_class="row"
                 ),
             Div(
@@ -66,17 +55,22 @@ class OrderEditFormHelper(ProfileEditFormHelper):
         
         super(OrderEditFormHelper, self).__init__(*args, **kwargs)
         
+        self.form_tag = False
+        
         html_service_status = '<div class="row form-group">'
         html_service_status += '<label class="control-label col-xs-2">'+_('Service status')+'</label>'
         html_service_status += '<label class="col-xs-10 form-readonly-field">{{ order.get_current_status_display }}</label>'
         html_service_status += '</div>'
         
+        order    = self.form.instance
+        self.form_action = reverse_lazy('client_profile_'+self.tab+'_edit', kwargs={'pk':str(order.client.id)})
+        
         
         self.layout = Layout(
                              HTML(html_service_status),
-                             'type',
-                             DaysInlineButtons('days'), 
-                             InlineRadios('meal_defaults_type')
+                             Div('type', css_class="row"),
+                             Div(InlineSelectButtons('days'), css_class="row"), 
+                             Div(InlineRadios('meal_defaults_type'),css_class="row")
                              )
 
                
@@ -142,9 +136,10 @@ class MealDefaultMealSetupFormHelper(CoreInlineFormHelper):
         formset_prefix = self.form.prefix.split('-')[0]
         self.layout = Layout(
             Div(
-                Field('quantity', wrapper_class="col-xs-2"),
-                HTML('<div class="col-xs-1 form-label"><span>'+_("Meal")+'</span></div>'),
-                Field('size', wrapper_class="col-xs-3"),
+                #Field('id', type="hidden"),
+                Field('quantity', wrapper_class="col-xs-3"),
+                HTML('<div class="col-xs-2 form-label"><span>'+_("Meal")+'</span></div>'),
+                Field('size', wrapper_class="col-xs-5"),
                 
                 css_class="inline meal_row_"+formset_prefix+" row"
                 )
@@ -176,8 +171,9 @@ class MealDefaultSideSetupFormHelper(CoreInlineFormHelper):
         formset_prefix = self.form.prefix.split('-')[0]
         self.layout = Layout(
             Div(
-                Field('quantity', wrapper_class="col-xs-2"),
-                Field('side', wrapper_class="col-xs-3"),
+                #Field('id', type="hidden"),
+                Field('quantity', wrapper_class="col-xs-4"),
+                Field('side', wrapper_class="col-xs-6"),
                 
                 css_class="inline side_row_"+formset_prefix +" row" 
                 )
@@ -195,6 +191,6 @@ class MealDefaultSideForm(CoreModelForm):
         self.helper = MealDefaultSideSetupFormHelper(self)
         
 MealDefaultSideFormSet = inlineformset_factory(MealDefault, MealDefaultSide, form=MealDefaultSideForm, formset=CoreBaseInlineFormSet, can_delete=True,
-                                     extra=0, min_num=1, max_num=3, validate_min=True, validate_max=True,
+                                     extra=0, min_num=0, max_num=3, validate_min=True, validate_max=True,
                                      fields=( 'side', 'quantity' ))
 

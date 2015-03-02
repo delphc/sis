@@ -1,0 +1,13 @@
+{% load staticfiles %}
+{% load i18n %}
+
+{% for category in foodcategories.all %}
+        $("div.container-{{category.slug}}-form div").formset({
+            prefix: 'restrictions_{{ category.slug }}',
+            formTemplate: '#id_{{ category.slug }}_empty_form',
+            addText: '<i class="fa fa-plus-circle"></i> {% trans "Add restriction" %}',
+            deleteText: '<i class="fa fa-remove"> {% trans "Remove restriction" %}',
+            deleteCssClass: 'delete-row'
+        });
+        
+{% endfor %}

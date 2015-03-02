@@ -7,7 +7,8 @@
 
 {% block tab-content %}
 <div id="tab-comm" class="tab-pane active">
-                        
+<form method="post" class="form-horizontal" action="{% url 'client_profile_order_edit' pk=object.id %}"> 
+                      
 <h4><span>{{ headline }}</span>
     <div class="pull-right">
         <a class="btn btn-default" href="{% url 'client_profile_order'  object.pk %}">{% trans 'Cancel' %}</a>
@@ -17,49 +18,18 @@
     </div>
 </h4>
 
-{% crispy order_form %}
-<div class="row">
-   
-    <div class="col-xs-offset-2 col-xs-10">
-        
-        <div class="row">
-            <table style="table-layout: fixed;" class="col-xs-12 table table-user-information">
-            <tbody>
-            {% for mealdef in order.get_meal_defaults %}
-            <tr id="tr_id_order-days_{{ day.pk }}" 
-                class="row {%if day.active%}tr-active-day{%else%}tr-everyday{%endif%}"
-                >
-                <td class="col-xs-2">
-                    {{ mealdef.day }}
-                </td>
-                <td class="col-xs-10">
-                    
-                        <div class="row">
-                            
-                        <div class="col-xs-6">
-                            {% for meal in mealdef.meals.all %}
-                                <span class="row">{{ meal.quantity }} {% trans 'Meal' %} {{ meal.get_size_display }}</span>
-                            {% endfor %}
-                        </div>
-                        <div class="col-xs-6">
-                            {% for defside in mealdef.mealdefaultside_set.all %}
-                                <span class="row">{{ defside.quantity }} {{ defside.side }}</span> 
-                            {% endfor %}
-                        </div>
-                        </div>
-                    
-                </td>
-            {% endfor %}
-        </table>
-        </div>
-    </div>
+{% include 'orders/_meal_defaults_form.html' %}
+</form>
+</div> <!-- end tab-comm -->
 
-
-</div>
-
-</div>
 
 {% endblock tab-content %}
 
 {% block javascript_extra_tab %}
+<script>
+    /* Project specific Javascript goes here. */
+$(document).ready(function() {
+    {% include 'orders/_meal_defaults_js.html' %}
+});
+</script>
 {% endblock javascript_extra_tab %}

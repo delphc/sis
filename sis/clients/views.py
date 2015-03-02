@@ -30,7 +30,7 @@ from .forms import  ClientCreateForm, ClientSetupForm, IdentificationForm, Commu
 
 from contacts.forms import  ContactInfoForm, AddressForm, AddressFormSet, AddressFormSetHelper, HomePhoneFormSet,  PhoneFormSetHelper
 from orders.forms import OrderForm, MealDefaultForm, MealDefaultMealFormSet, MealDefaultSideFormSet
-from food.forms import DietForm
+from food.forms import DietForm, RestrictionFormSet
 
 # Import the customized User model
 from .models import Client, Referral, Relationship
@@ -175,15 +175,19 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             # section meal service
             "order": OrderForm,            # main settings of meal order
 #           # FORMS["meals"] is actually a formset dict :  
-            # key = meals_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
-            # value = MealDefaultMealFormSet instance to set nb and size of meals for this day
+            # key =  [day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+            # value = MealDefaultMealFormSet instance (prefix = meals_[day.sort_order]) to set nb and size of meals for this day 
             "meals" : MealDefaultMealFormSet,  
             # FORMS["meals"] is actually a formset dict :  
-            # key = mealsides_[day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
-            # value = MealDefaultSideFormSet instance to set nb of sides for this day 
+            # key = [day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+            # value = MealDefaultSideFormSet instance (prefix = mealsides_[dau.sort_order]) to set nb of sides for this day 
             "mealsides": MealDefaultSideFormSet,
             # section Dietary Restrictions
-            "diet": DietForm
+            "diet": DietForm,
+            # FORMS["restrictions"] is actually a formset dict :  
+            # key = [category.slug] (1 key for each category)
+            # value = RestrictionFormSet instance (prefix = 'restrictions_[category.slug]')
+            "restrictions": RestrictionFormSet
             }
     target_modals = { 'contact_create_url' : 'contact_create' }
     
@@ -193,6 +197,7 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         context = super(ClientSetupView, self).get_context_data(**kwargs)
         
         context['meal_service_days'] = ServiceDay.objects.get_days_for_meal_defaults()
+        context['foodcategories'] = FoodCategory.objects.all()
         return context 
     
 #     def get_form_kwargs(self):
@@ -301,6 +306,30 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         
         return meal_forms
     
+    def get_restrictions_forms(self, request, context, form_prefix, usage):
+        restrictions_forms = {}
+        foodcategories = context['foodcategories']
+        for category in foodcategories.all():
+            category_form_prefix = form_prefix+"_"+category.slug
+            
+            if usage == "pend_get":
+                form = self.get_form_pended( category_form_prefix, self.FORMS[form_prefix] )
+                
+            elif usage == "pend_post":
+                form = self.form_pended( request, category_form_prefix, self.FORMS[form_prefix] )
+                
+            elif usage == "final_post":
+                form = self.get_form_final( request, category_form_prefix, self.FORMS[form_prefix] )
+            
+            restrictions_forms[category.slug] = form
+        
+        context[form_prefix+"_form"] = restrictions_forms
+        
+        return restrictions_forms
+    
+    ## TODO ## make a generic function get_multiple_forms_dict to replace both functions get_meal_forms and get_restrictions_forms
+
+    
     
     def validate_all_meal_forms(self, request, context, all_forms):
         """
@@ -321,6 +350,7 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         selected_days = order_form.cleaned_data['days']
         print >>sys.stderr, '***  selected days  *** %s' % selected_days
         
+        # validate meals and mealsides formset dict
         for form_prefix in self.FORMS.keys():
             if "meal" in form_prefix:
                 meal_forms = self.get_meal_forms(request, context, form_prefix, "final_post")
@@ -337,7 +367,7 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
                         for selected_day in selected_days:
                             days_sort_order_list.append(selected_day.sort_order)
                     else:
-                        active_days = ServiceDays.objects.get_meal_service_days()
+                        active_days = ServiceDay.objects.get_meal_service_days()
                         for active_day in active_days.all():
                             days_sort_order_list.append(active_day.sort_order)
                     
@@ -365,7 +395,21 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             all_forms_valid = all_forms_valid and form_valid
             
         return all_forms_valid
-       
+    
+    def validate_all_restrictions_forms(self, request, context, all_forms):
+        all_forms_valid = True
+        
+        restrictions_forms = self.get_restrictions_forms(request, context, "restrictions", "final_post")
+        for category_slug in restrictions_forms.keys():
+            form_valid = restrictions_forms[category_slug].is_valid()
+            if not form_valid:
+                print >>sys.stderr, '***  INVALID form  *** %s - %s' % (str(day_sort_order), restrictions_forms[category_slug].errors)
+                #messages.error(self.request, form.non_field_errors())
+            all_forms_valid = all_forms_valid and form_valid
+        
+        all_forms["restrictions"] = restrictions_forms  
+        return all_forms_valid
+    
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         
@@ -374,6 +418,8 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             print >>sys.stderr, '***  get form  *** %s' % form_prefix
             if "meal" in form_prefix:
                 self.get_meal_forms(request, context, form_prefix, "pend_get")
+            elif "restrictions" in form_prefix:
+                self.get_restrictions_forms(request, context, form_prefix, "pend_get")
             else:
                 form = self.get_form_pended( form_prefix, self.FORMS[form_prefix] )
                 context[form_prefix+"_form"] = form
@@ -391,6 +437,8 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
                 print >>sys.stderr, '***  pend form  *** %s' % form_prefix
                 if "meal" in form_prefix:
                     self.get_meal_forms(request, context, form_prefix, "pend_post")
+                elif "restrictions" in form_prefix:
+                    self.get_restrictions_forms(request, context, form_prefix, "pend_post")
                 else:
                     form = self.form_pended( request, form_prefix, self.FORMS[form_prefix] )
             
@@ -402,7 +450,7 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             all_forms_valid = True
             all_forms = {}
             for form_prefix in self.FORMS.keys():
-                if "meal" not in form_prefix:
+                if "meal" not in form_prefix and "restrictions" not in form_prefix:
                     form = self.get_form_final( request, form_prefix, self.FORMS[form_prefix] )
                     form_valid = form.is_valid()
                     if form_valid:
@@ -417,7 +465,10 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
             
             meal_forms_valid = self.validate_all_meal_forms(request, context, all_forms)
             all_forms_valid = all_forms_valid and meal_forms_valid
-                
+            
+            restrictions_forms_valid = self.validate_all_restrictions_forms(request, context, all_forms)
+            all_forms_valid = all_forms_valid and restrictions_forms_valid
+            
             if all_forms_valid:
                 return self.form_valid(all_forms)
             else:
@@ -429,12 +480,21 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         
         meals_formset = meals_forms[day.sort_order]
         meals_formset.instance = mealdef
-        meals_formset.save()
+        instances = meals_formset.save(commit=False)
+        for mealdef in instances:
+            mealdef.save()
+        for old_mealdef in meals_formset.deleted_objects:
+            old_mealdef.delete()
         
         sides_formset = sides_forms[day.sort_order]
         sides_formset.instance = mealdef
-        sides_formset.save()
-    
+        instances = sides_formset.save(commit=False)
+        for sidedef in instances:
+            sidedef.save()
+        for old_sidedef in sides_formset.deleted_objects:
+            old_sidedef.delete()
+            
+            
     def form_valid(self, all_forms):
         """
             all_forms is a dict that contains valid forms
@@ -489,7 +549,6 @@ class ClientSetupView(LoginRequiredMixin, MultipleModalMixin,SingleObjectMixin, 
         relationship_form.instance = self.object
         relationship_form.save()
         
-
         order = order_form.save(commit=False)
         order.client = self.object
         order.save()
@@ -728,7 +787,6 @@ class ClientProfileEditMainView(ClientProfileMixin, FormView):
             'edit': True
         })
         if self.request.method in ('POST', 'PUT'):
-            print >>sys.stderr, '*** include post request **** %s' % self.request.POST
             kwargs.update({
                 'data': self.request.POST,
                 'files': self.request.FILES,
@@ -895,7 +953,16 @@ class ClientProfileEditReferralView(MultipleModalMixin, ClientReferralHeadlineMi
 class ClientProfileEditOrderView(MultipleModalMixin, ClientOrderHeadlineMixin, ClientProfileEditMainView):
     template_name = "clients/client_profile_order_edit.html"
     form_classes = {
-                    "order" : OrderForm
+                    "order" : OrderForm,
+                    # form_classes["meals"] is actually a formset dict :  
+                    # key =  [day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+                    # value = MealDefaultMealFormSet instance (prefix = meals_[day.sort_order]) to set nb and size of meals for this day 
+                    "meals" : MealDefaultMealFormSet,  
+                    # form_classes["mealsides"] is actually a formset dict :  
+                    # key = [day.sort_order] (1 key for each active service day + 1 for 'everyday' special day)
+                    # value = MealDefaultSideFormSet instance (prefix = mealsides_[dau.sort_order]) to set nb of sides for this day 
+                    "mealsides": MealDefaultSideFormSet,
+
                     }
     tab = "order"
     success_url = 'client_profile_order'
@@ -914,24 +981,194 @@ class ClientProfileEditOrderView(MultipleModalMixin, ClientOrderHeadlineMixin, C
         kwargs = super(ClientProfileEditOrderView, self).get_form_kwargs(prefix)
         
         order = Order.objects.get_latest_order_for_client(self.get_object())
-        
-        kwargs.update({
-            'instance': order
-        })
-        return kwargs
-
-
-
-class ClientProfileMainView(LoginRequiredMixin, UpdateView):
-    def get_form_kwargs(self):
-        """
-        Returns the keyword arguments for instantiating the form.
-        """
-        kwargs = super(ClientProfileView, self).get_form_kwargs()
-        kwargs.update({
-                'lang': self.request.LANGUAGE_CODE,
-                });
+        if prefix == "order":
+            kwargs.update({
+                'instance': order
+            })
+        else:
+            # For meal and sides defaults, there is one Formset per active day of meal service
+            # Each formset need to be bound to a MealDefault instance
+            # An order has either a single MealDefault if same settings are set for everyday
+            # or one distinct MealDefault per day of service if day-specific settings are set
             
-        return kwargs 
-     
+            day_sort_order = prefix.split('_')[1]
+            service_day = ServiceDay.objects.get_meal_service_day(sort_order=day_sort_order)
+            mealdefault = order.get_meal_default(service_day)
+            print >>sys.stderr, '*** get_form_kwargs for prefix %s - def = %s' % (prefix, mealdefault)
+            kwargs.update({
+                'instance': mealdefault
+            })
+            
+        
+        return kwargs
     
+
+    def get_form(self, form_class, prefix):
+        if prefix == "order":
+            return super(ClientProfileEditOrderView, self).get_form(form_class, prefix)
+        else:
+            return self.get_meal_forms(form_class, prefix)
+    
+    def get_meal_forms(self, form_class, form_prefix):
+        meal_forms = {}
+        context = self.get_context_data()
+        meal_service_days = context['meal_service_days']
+        for day in meal_service_days.all():
+            day_form_prefix = form_prefix+"_"+str(day.sort_order)
+            
+            form = super(ClientProfileEditOrderView, self).get_form( form_class, prefix=day_form_prefix)
+                
+            meal_forms[day.sort_order] = form
+        
+        #context[form_prefix+"_form"] = meal_forms
+        
+        return meal_forms
+    
+    def validate_all_meal_forms(self, request, all_forms):
+        """
+            Cannot validate all meal forms
+            It depends on values entered in order form fields :
+            meal_defaults_type
+                same defaults for everyday -> validate forms corresponding to 'everyday' special service day
+                day-specific -> 
+                    for ongoing service type -> validate forms corresponding to days selected in 'days' field
+                    for episodic service type -> validate forms for each active service day
+                    
+        """
+        all_forms_valid = True
+        order_form = all_forms["order"]
+        service_type = order_form.cleaned_data['type']
+        meal_defaults_type = order_form.cleaned_data['meal_defaults_type']
+        print >>sys.stderr, '***  defaults type  *** %s' % meal_defaults_type
+        selected_days = order_form.cleaned_data['days']
+        print >>sys.stderr, '***  selected days  *** %s' % selected_days
+        
+        # build days_sort_order_list depending on values entered in order form fields
+        # This list will determine for which days forms and formset need to be validated
+        # Days not listed will be ignored
+        days_sort_order_list = []
+        if meal_defaults_type == Order.DEFAULTS_TYPE_EVERYDAY['code']:
+            everyday = ServiceDay.objects.get_meal_service_everyday()
+            days_sort_order_list.append(everyday.sort_order)
+        else:
+            if service_type == Order.ONGOING:
+                for selected_day in selected_days:
+                    days_sort_order_list.append(selected_day.sort_order)
+            else:
+                active_days = ServiceDay.objects.get_meal_service_days()
+                for active_day in active_days.all():
+                    days_sort_order_list.append(active_day.sort_order)
+        
+        print >>sys.stderr, '***  validate meals form  ***'      
+        meal_forms_valid = self.validate_meal_forms(all_forms['meals'], days_sort_order_list)
+                            
+        all_forms_valid = all_forms_valid and meal_forms_valid
+        
+        print >>sys.stderr, '***  validate mealsides  form  ***'
+        mealsides_forms_valid = self.validate_meal_forms(all_forms['mealsides'], days_sort_order_list)
+                            
+        all_forms_valid = all_forms_valid and mealsides_forms_valid
+                
+        return all_forms_valid
+    
+    def validate_meal_forms(self, meal_forms, day_sort_order_list):
+        """
+            The days_sort_order_list indicates for which days forms and formset need to be validated
+            Days not listed will be ignored
+        """
+        #order_form = context['order_form']
+        all_forms_valid = True
+        
+        for day_sort_order in day_sort_order_list:
+                
+            form_valid = meal_forms[day_sort_order].is_valid()
+            if not form_valid:
+                print >>sys.stderr, '***  INVALID form  ***  %s - %s' % (str(day_sort_order), meal_forms[day_sort_order].errors)
+                
+            all_forms_valid = all_forms_valid and form_valid
+            
+        return all_forms_valid
+    
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        print >>sys.stderr, '*** ENTERING POST **** %s' % request.POST
+        
+        all_forms_valid = True
+        
+        forms = self.get_forms()
+        
+        # order of validation : "order" / "meals" / "mealsides"
+        order_form = forms["order"]
+        form_valid = order_form.is_valid()
+            
+        all_forms_valid = all_forms_valid and form_valid
+        
+        all_forms_valid = all_forms_valid and self.validate_all_meal_forms(request, forms)
+       
+        if all_forms_valid:
+            return self.form_valid(forms)          
+        else:
+            return self.form_invalid(forms)
+    
+    def save_meal_default(self, meals_forms, sides_forms, order, day):
+        #mealdef = MealDefault(order=order, day=day) 
+        #mealdef.save()
+        
+        #TODO : get or create new meal default for day
+        mealdef = order.get_meal_default(day)
+        if not mealdef:
+            mealdef = MealDefault(order=order, day=day)
+            mealdef.save()
+            
+        meals_formset = meals_forms[day.sort_order]
+        meals_formset.instance = mealdef
+        meals_formset.save()
+        
+        sides_formset = sides_forms[day.sort_order]
+        sides_formset.instance = mealdef
+        sides_formset.save()
+          
+    def form_valid(self, forms):
+        
+        #for form_prefix in self.form_classes.keys():
+        #    forms[form_prefix].save()
+        print >>sys.stderr, '*** FORM VALID - save data !!!  ****'
+        order_form = forms["order"]
+        meals_forms = forms["meals"]
+        sides_forms = forms["mealsides"]
+        
+        order = order_form.save(commit=False)
+        order.save()
+        order_form.save_m2m() # to save days
+        
+        meal_defaults_type = order_form.cleaned_data['meal_defaults_type']
+        if meal_defaults_type != order.get_meal_defaults_type_code() :
+            # if order previously had day-specific settings -> delete them
+            for mealdef in order.get_meal_defaults():
+                mealdef.delete()
+                
+        if meal_defaults_type == Order.DEFAULTS_TYPE_EVERYDAY['code']:
+            
+            # save new meal default for everyday
+            # same defaults for every day
+            everyday_serviceday = ServiceDay.objects.get_meal_service_everyday()
+            self.save_meal_default(meals_forms, sides_forms, order, everyday_serviceday)
+        
+        else:
+            
+            # save new meal defaults for each active day
+            
+            # different defaults set per day
+            # if service type is ongoing
+            #    need to save one MealDefault for each selected day
+            if order.type == Order.ONGOING:
+                for day in order.days.all():
+                    self.save_meal_default(meals_forms, sides_forms, order, day)
+            # if service type is episodic
+            #    need to save one MealDefault for each active day of meal service
+            else:
+                for day in ServiceDay.get_meal_service_days().all():
+                    self.save_meal_default(meals_forms, sides_forms, order, day)
+        return HttpResponseRedirect(self.get_success_url())
+    
+

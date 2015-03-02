@@ -17,6 +17,10 @@ from clients.models import Client
         
 # Create your models here.
 class FoodCategory(TimeStampedModel, TranslatedModel):
+    class Meta:
+        unique_together = ("slug", "sort_order")
+        ordering = ['sort_order']
+        
     history = AuditlogHistoryField()
     slug = models.SlugField(default='')
     name_en = models.CharField(max_length=100, default='')
@@ -29,12 +33,12 @@ class FoodCategory(TimeStampedModel, TranslatedModel):
         return self.get_name()
         
         
-class FoodIngredient(TimeStampedModel):
+class FoodIngredient(TranslatedModel):
     history = AuditlogHistoryField()
     slug = models.SlugField(default='')
     name_en = models.CharField(max_length=100, default='')
     name_fr = models.CharField(max_length=100, default='')
-    categories = models.ManyToManyField(FoodCategory)
+    category = models.ForeignKey(FoodCategory, default='')
 
     def __unicode__(self):
         return self.get_name()
@@ -46,8 +50,8 @@ class FoodPreparationMode(TranslatedModel):
     
     name_en = models.CharField(max_length=100)
     name_fr = models.CharField(max_length=100)
-    desc_en = models.CharField(max_length=100)
-    desc_fr = models.CharField(max_length=100)
+    description_en = models.CharField(max_length=100)
+    description_fr = models.CharField(max_length=100)
 
     def __unicode__(self):
         return self.get_name()
@@ -72,14 +76,14 @@ class RestrictionReason(TranslatedModel):
 class Restriction(TimeStampedModel):
     diet = models.ForeignKey(DietaryProfile)
     ingredient = models.ForeignKey(FoodIngredient)
-    reason = models.ForeignKey(RestrictionReason)
-    reason_info = models.CharField(_('Details'), max_length=50)
+    allergy = models.BooleanField(default=False)
+    #reason = models.ForeignKey(RestrictionReason)
+    #reason_info = models.CharField(_('Details'), max_length=50)
     
     def __unicode__(self):
-        str = self.ingredient.get_name() + "(" + self.reason.get_name()
+        str = self.ingredient.get_name() 
         if self.reason_info:
-            str += " - " +self.reason_info
-        str += ")"
+            str += " (" +_("Allergy") +")"
         return str
     
     
